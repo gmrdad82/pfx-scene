@@ -1,0 +1,42 @@
+app = "pfx-scene"
+bin = "scene-check"
+grid = [100, 20]
+frame = "window"
+typing = "35ms"
+cwd = "{scratch}/demo"
+setup = "rm -rf {scratch}/demo && cp -r {app}/examples/demo {scratch}/demo && sed -i 's/brass/bras/; s/ball.gltf/Ball.gltf/' {scratch}/demo/scenes/room.scene.toml"
+
+[build]
+command = "cargo build --release --locked --example scene-check"
+bin_dir = "{target}/release/examples"
+
+[theme]
+name = "pfx-scene"
+background = "#1e1e2e"
+foreground = "#cdd6f4"
+selection = "#45475a"
+cursor = "#f5e0dc"
+black = "#45475a"
+red = "#f38ba8"
+green = "#a6e3a1"
+yellow = "#f9e2af"
+blue = "#89b4fa"
+magenta = "#f5c2e7"
+cyan = "#94e2d5"
+white = "#bac2de"
+brightBlack = "#585b70"
+brightRed = "#f38ba8"
+brightGreen = "#a6e3a1"
+brightYellow = "#f9e2af"
+brightBlue = "#89b4fa"
+brightMagenta = "#f5c2e7"
+brightCyan = "#94e2d5"
+brightWhite = "#a6adc8"
+
+[shots.check]
+kind = "clip"
+line = "The scene-check example on the demo project with two mistakes: each error at its line and column with its code, then both fixed and the scene resolved"
+tape = "render/terminal/check.tape"
+settle = "1s"
+closure = { crossfade = 0.5 }
+status = "SHIPPED"

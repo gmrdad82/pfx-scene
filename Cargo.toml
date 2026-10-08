@@ -1,0 +1,18 @@
+[package]
+name = "pfx-scene"
+version = "0.1.0"
+authors = ["Gamer Dad"]
+edition = "2024"
+description = "One TOML format for 3D scenes, materials and prefabs: typed tables, errors at file:line:column, stable ids, versioned files with migrations, and a writer that keeps the author's comments, spacing and order"
+license = "MIT"
+repository = "https://github.com/gmrdad82/pfx-scene"
+homepage = "https://pitomd.com"
+publish = false
+
+[lib]
+name = "pfx_scene"
+
+[dependencies]
+serde = { version = "1.0.229", features = ["derive"] }
+toml = "1.1.6"
+toml_edit = "0.25.15"
