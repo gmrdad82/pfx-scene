@@ -22,20 +22,20 @@ pub(crate) fn sha256(bytes: &[u8]) -> [u8; 32] {
         message.push(0);
     }
     message.extend_from_slice(&length.to_be_bytes());
-    for block in message.chunks_exact(64) {
+    for block in message.as_chunks::<64>().0 {
         compress(&mut state, block);
     }
     let mut out = [0; 32];
-    for (chunk, word) in out.chunks_exact_mut(4).zip(state) {
-        chunk.copy_from_slice(&word.to_be_bytes());
+    for (chunk, word) in out.as_chunks_mut::<4>().0.iter_mut().zip(state) {
+        *chunk = word.to_be_bytes();
     }
     out
 }
 
-fn compress(state: &mut [u32; 8], block: &[u8]) {
+fn compress(state: &mut [u32; 8], block: &[u8; 64]) {
     let mut w = [0u32; 64];
-    for (index, chunk) in block.chunks_exact(4).enumerate() {
-        w[index] = u32::from_be_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]);
+    for (index, chunk) in block.as_chunks::<4>().0.iter().enumerate() {
+        w[index] = u32::from_be_bytes(*chunk);
     }
     for i in 16..64 {
         let s0 = w[i - 15].rotate_right(7) ^ w[i - 15].rotate_right(18) ^ (w[i - 15] >> 3);
