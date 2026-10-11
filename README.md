@@ -6,6 +6,8 @@
 
 One TOML format for 3D scenes, prefabs and material libraries, shared by a game engine and a 3D editor, so a scene saved in one opens in the other. It is the content format of pfx, the [PITO](https://pitomd.com) game and render engine, and of its editor; this crate reads, checks, resolves, edits and migrates it.
 
+Works on Linux, Windows and macOS (CI-tested on all three).
+
 It is for the tools on either side of a scene file: an engine's loader, an editor that saves what a person arranges, a build tool that emits scenes, and a text editor that marks mistakes as someone types.
 
 - **Readable files:** `*.scene.toml`, `*.prefab.toml`, `*.materials.toml` and `*.proxies.toml` under a `project.toml`, each starting with `format = 1`.
