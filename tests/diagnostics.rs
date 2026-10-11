@@ -515,14 +515,17 @@ fn every_code_fires_where_it_should() {
         folder.write("project.toml", HEAD);
         folder.write("a.scene.toml", "format = 1\ninclude = [\"b.scene.toml\"]\n");
         folder.write("b.scene.toml", "format = 1\n");
-        let path = folder.path("b.scene.toml");
-        use std::os::unix::fs::PermissionsExt;
-        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o000)).unwrap();
-        if std::fs::read(&path).is_err() {
-            let diagnostics = folder.check();
-            at(find(&diagnostics, code::UNREADABLE), "b.scene.toml", 1, 1);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let path = folder.path("b.scene.toml");
+            std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o000)).unwrap();
+            if std::fs::read(&path).is_err() {
+                let diagnostics = folder.check();
+                at(find(&diagnostics, code::UNREADABLE), "b.scene.toml", 1, 1);
+            }
+            std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o644)).unwrap();
         }
-        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o644)).unwrap();
         seen.insert(code::UNREADABLE);
     }
 
