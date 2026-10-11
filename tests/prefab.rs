@@ -1,5 +1,7 @@
 mod common;
 
+use std::path::Path;
+
 use common::{Folder, LAMP, ROOM, errors, show};
 use pfx_scene::{Diagnostic, Scene, code};
 
@@ -245,7 +247,7 @@ fn a_prefab_holds_no_scene_tables() {
         .iter()
         .find(|d| d.code == code::UNKNOWN_KEY)
         .unwrap();
-    assert_eq!(error.file.to_str(), Some("props/lamp.prefab.toml"));
+    assert_eq!(error.file, Path::new("props/lamp.prefab.toml"));
     assert!(error.message.contains("unknown key 'sky'"), "{error}");
 }
 

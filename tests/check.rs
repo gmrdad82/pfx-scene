@@ -272,7 +272,7 @@ fn the_root_is_the_nearest_folder_with_a_project_file() {
     assert!(project.has_project_file());
     let files: Vec<String> = project
         .files()
-        .map(|file| file.display().to_string())
+        .map(|file| file.display().to_string().replace('\\', "/"))
         .collect();
     assert_eq!(
         files,
@@ -317,7 +317,7 @@ fn open_skips_target_tmp_dot_folders_other_projects_and_the_listed_paths() {
     let project = folder.project();
     let files: Vec<String> = project
         .files()
-        .map(|file| file.display().to_string())
+        .map(|file| file.display().to_string().replace('\\', "/"))
         .collect();
     assert_eq!(
         files,

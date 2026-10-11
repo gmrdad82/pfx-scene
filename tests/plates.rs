@@ -26,10 +26,10 @@ fn plated(name: &str, extra: &str, plates: &str, proxies: &str) -> Folder {
     folder
 }
 
-fn found(diagnostics: &[Diagnostic]) -> Vec<(&'static str, &str, &str)> {
+fn found(diagnostics: &[Diagnostic]) -> Vec<(&'static str, &Path, &str)> {
     diagnostics
         .iter()
-        .map(|d| (d.code, d.file.to_str().unwrap(), d.key.as_str()))
+        .map(|d| (d.code, d.file.as_path(), d.key.as_str()))
         .collect()
 }
 
@@ -153,7 +153,7 @@ fn a_proxy_stands_in_for_a_static_object_of_the_scene_that_names_its_file() {
             found(&diagnostics),
             [(
                 code::BAD_REFERENCE,
-                "plates/room.proxies.toml",
+                Path::new("plates/room.proxies.toml"),
                 "proxy.pr0xy00009.object"
             )],
             "{}",
@@ -183,7 +183,7 @@ fn a_proxy_reaches_a_placed_object_by_its_namespaced_id_or_key_and_never_a_place
         found(&diagnostics),
         [(
             code::BAD_REFERENCE,
-            "plates/room.proxies.toml",
+            Path::new("plates/room.proxies.toml"),
             "proxy.pr0xy00003.object"
         )],
         "{}",
@@ -265,7 +265,7 @@ fn proxy_shapes_take_their_own_keys_with_their_ranges() {
         let diagnostics = folder.check();
         assert_eq!(
             found(&diagnostics),
-            [(code, "plates/room.proxies.toml", key)],
+            [(code, Path::new("plates/room.proxies.toml"), key)],
             "{shape}\n{}",
             show(&diagnostics)
         );
@@ -311,7 +311,7 @@ fn plates_keys_are_checked_where_they_are_written() {
         let diagnostics = folder.check();
         assert_eq!(
             found(&diagnostics),
-            [(code, "room.scene.toml", key)],
+            [(code, Path::new("room.scene.toml"), key)],
             "{plates}\n{}",
             show(&diagnostics)
         );
@@ -324,7 +324,7 @@ fn plates_keys_are_checked_where_they_are_written() {
     let diagnostics = folder.check();
     assert_eq!(
         found(&diagnostics),
-        [(code::HELD_TWICE, "room.scene.toml", "plates")],
+        [(code::HELD_TWICE, Path::new("room.scene.toml"), "plates")],
         "{}",
         show(&diagnostics)
     );
@@ -340,7 +340,7 @@ fn an_unsaved_proxies_buffer_is_checked_against_its_scene() {
         found(&marks),
         [(
             code::BAD_REFERENCE,
-            "plates/room.proxies.toml",
+            Path::new("plates/room.proxies.toml"),
             "proxy.pr0xy00001.object"
         )],
         "{}",

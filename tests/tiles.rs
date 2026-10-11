@@ -234,7 +234,7 @@ fn an_error_in_a_tile_prefab_is_reported_in_the_prefab() {
     let found = project.scene(&folder.path("room.scene.toml")).unwrap_err();
     let error = one(&found);
     assert_eq!(error.code, code::BAD_VALUE, "{error}");
-    assert_eq!(error.file.to_str(), Some("tiles/brick.prefab.toml"));
+    assert_eq!(error.file, Path::new("tiles/brick.prefab.toml"));
     let diagnostics = folder.check();
     assert_eq!(one(&diagnostics), error);
 }
@@ -358,7 +358,7 @@ fn a_tile_layer_belongs_to_a_scene_and_takes_an_id() {
     let diagnostics = folder.check();
     let error = one(&diagnostics);
     assert_eq!(error.code, code::UNKNOWN_KEY, "{error}");
-    assert_eq!(error.file.to_str(), Some("tiles/brick.prefab.toml"));
+    assert_eq!(error.file, Path::new("tiles/brick.prefab.toml"));
 
     let folder = tiled(
         "tiles-no-id",
