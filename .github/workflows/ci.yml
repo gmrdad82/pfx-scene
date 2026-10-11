@@ -59,6 +59,6 @@ jobs:
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
-      - run: cargo nextest run --all-features --locked --no-tests=pass
+      - run: cargo nextest run --all-features --locked --no-tests=pass --no-fail-fast
       - run: cargo test --all-features --locked --doc
       - run: cargo build --release --all-features --locked --lib --examples
