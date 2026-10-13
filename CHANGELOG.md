@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- The brand now reads PITO MD in the README, NOTICE.md and TRADEMARKS.md.
+
 ## v0.1.0
 
 The first public release.

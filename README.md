@@ -4,7 +4,7 @@
 
 [![CI](https://github.com/gmrdad82/pfx-scene/actions/workflows/ci.yml/badge.svg)](https://github.com/gmrdad82/pfx-scene/actions/workflows/ci.yml) [![Version](https://img.shields.io/github/v/tag/gmrdad82/pfx-scene)](https://github.com/gmrdad82/pfx-scene/tags)
 
-One TOML format for 3D scenes, prefabs and material libraries, shared by a game engine and a 3D editor, so a scene saved in one opens in the other. It is the content format of pfx, the [PITO](https://pitomd.com) game and render engine, and of its editor; this crate reads, checks, resolves, edits and migrates it.
+One TOML format for 3D scenes, prefabs and material libraries, shared by a game engine and a 3D editor, so a scene saved in one opens in the other. It is the content format of pfx, the [PITO MD](https://pitomd.com) game and render engine, and of its editor; this crate reads, checks, resolves, edits and migrates it.
 
 Works on Linux, Windows and macOS (CI-tested on all three).
 
@@ -94,4 +94,4 @@ Issues and pull requests are welcome. Please read the [code of conduct](CODE_OF_
 
 ## Licence
 
-The code is MIT licensed: see [LICENSE](LICENSE). The MIT grant covers the code only: the PITO name and every app and game name and logo stay Catalin Ilinca's, all rights reserved, as [TRADEMARKS.md](TRADEMARKS.md) says. Where the format and the first code came from is in [NOTICE.md](NOTICE.md).
+The code is MIT licensed: see [LICENSE](LICENSE). The MIT grant covers the code only: the PITO MD name and every app and game name and logo stay Catalin Ilinca's, all rights reserved, as [TRADEMARKS.md](TRADEMARKS.md) says. Where the format and the first code came from is in [NOTICE.md](NOTICE.md).

@@ -1,6 +1,6 @@
 # Notices
 
-The scene format and the first version of this crate's types, checks, writer and tests come from the scene loader of the PITO game engine, by the same owner, at commit `81b2b0b9`: its format draft, its serde layer, its loader's checks and messages, its scene editor's patch model and tests, the material and finish keys, and the neutral test meshes and image in `tests/fixtures/`. They were copied here, rewritten for format 1, and are MIT licensed in this repository. Nothing here reads the engine at build, test or run time.
+The scene format and the first version of this crate's types, checks, writer and tests come from the scene loader of the PITO MD game engine, by the same owner, at commit `81b2b0b9`: its format draft, its serde layer, its loader's checks and messages, its scene editor's patch model and tests, the material and finish keys, and the neutral test meshes and image in `tests/fixtures/`. They were copied here, rewritten for format 1, and are MIT licensed in this repository. Nothing here reads the engine at build, test or run time.
 
 The plates keys (`[plates]`, the derived `[[object]] dynamic`, `[text.*] dynamic` and the proxies' box and hull shapes) follow the same engine's plates loader at commit `f40592e9`.
 
