@@ -11,3 +11,5 @@ The commits named here are from the engine's development history before its publ
 The demo project's meshes in `examples/demo/assets/` are copies of the test meshes in `tests/fixtures/assets/`.
 
 The README's clips, `docs/images/check.gif`, `docs/images/tree.gif`, `docs/images/write.gif` and `docs/images/migrate.gif`, are recordings of the `scene-check`, `scene-tree` and `scene-write` examples on copies of the demo project (the migration clip on `render/terminal/room-format0.scene.toml`), made from this repository with the recipe in `render/terminal.toml`. The chart `docs/images/speed.png` is drawn from `render/charts/speed.toml`, which holds the `scene-bench` example's measurements. All are MIT licensed with the code.
+
+The mark at the README's licence section, `docs/images/pitomd.svg`, is the PITO MD mark, copied by `bin/marks` from the PITO MD brand masters at `fe97f221c8c071389283144c416f4fcde87b3958` (its note is `docs/images/SOURCE`). The PITO MD name and its mark are © Catalin Ilinca, all rights reserved and not covered by the MIT licence ([TRADEMARKS.md](TRADEMARKS.md)).
