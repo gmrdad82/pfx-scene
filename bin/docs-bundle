@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+crate=$(sed -n 's/^version = "\(.*\)"$/\1/p' Cargo.toml | head -n 1)
+version=${1:-v$crate}
+if [ "$version" != "v$crate" ]; then
+  echo "docs-bundle: $version is not the crate's version, v$crate" >&2
+  exit 1
+fi
+
+out=tmp/docs-bundle
+rm -rf "$out"
+mkdir -p "$out/docs/reference" "$out/docs/images"
+
+cp -R docs/site/. "$out/docs/"
+cp docs/images/* "$out/docs/images/"
+sed -E "s/tag = \"v[0-9]+\.[0-9]+\.[0-9]+\"/tag = \"$version\"/" docs/site/install.md >"$out/docs/install.md"
+
+{
+  printf -- '---\ntitle: The format\ndescription: The specification of format 1, every key with its type, default and range, the diagnostic codes and the API that reads and writes it.\nsidebar:\n  order: 30\n---\n\n'
+  sed -e '1,2{/^# /d;/^$/d;}' docs/format.md
+} >"$out/docs/reference/formats.md"
+
+{
+  printf -- '---\ntitle: Changelog\ndescription: What changed in each version of pfx-scene.\nsidebar:\n  order: 40\n---\n\n'
+  sed -e '1,2{/^# /d;/^$/d;}' -e 's#](docs/format.md)#](../reference/formats/)#g' CHANGELOG.md
+} >"$out/docs/changelog.md"
+
+rm -rf target/doc
+cargo doc --no-deps --locked --lib
+cp -R target/doc "$out/docs/api"
+blob="https://github.com/gmrdad82/pfx-scene/blob/$version"
+sed -i.bak -E \
+  -e 's#src="docs/images/#src="../../images/#g' \
+  -e 's#href="docs/format.md"#href="../../reference/formats/"#g' \
+  -e 's#href="CHANGELOG.md"#href="../../changelog/"#g' \
+  -e "s#href=\"(LICENSE|NOTICE.md|TRADEMARKS.md|CODE_OF_CONDUCT.md|SECURITY.md)\"#href=\"$blob/\\1\"#g" \
+  -e "s#href=\"examples/\"#href=\"https://github.com/gmrdad82/pfx-scene/tree/$version/examples\"#g" \
+  "$out/docs/api/pfx_scene/index.html"
+rm "$out/docs/api/pfx_scene/index.html.bak"
+
+if grep -rIlF -- "$PWD" "$out" >&2; then
+  echo "docs-bundle: the files above name a local path" >&2
+  exit 1
+fi
+
+tar -czf "tmp/docs-$version.tar.gz" -C "$out" docs
+echo "tmp/docs-$version.tar.gz"
