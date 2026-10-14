@@ -171,6 +171,6 @@ Issues and pull requests are welcome. Please read the [code of conduct](CODE_OF_
 
 ## Licence
 
-<img src="docs/images/pitomd.svg" width="128" alt="The PITO MD mark">
+<img src="docs/images/pitomd-wordmark.svg" width="320" alt="PITO MD">
 
 The code is MIT licensed: see [LICENSE](LICENSE). The MIT grant covers the code only: the PITO MD name and every app and game name and logo stay Catalin Ilinca's, all rights reserved, as [TRADEMARKS.md](TRADEMARKS.md) says. Where the format and the first code came from is in [NOTICE.md](NOTICE.md).

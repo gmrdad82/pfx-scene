@@ -2,5 +2,5 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 assets="${PITO_ASSETS:?PITO_ASSETS names the checkout of the PITO MD brand masters}"
-rev=fe97f221c8c071389283144c416f4fcde87b3958
-git -C "$assets" show "$rev:exports/pitomd/render/marks/logos/pitomd.svg" > docs/images/pitomd.svg
+rev=aa3aee8b232a1b848995bf3d9a012a01d4aff8ec
+git -C "$assets" show "$rev:exports/pitomd/readme/wordmark.svg" > docs/images/pitomd-wordmark.svg
