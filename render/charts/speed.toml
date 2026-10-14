@@ -1,0 +1,29 @@
+title = "PFX-SCENE SPEED"
+unit = "MILLISECONDS, MEDIAN OF 7"
+better = "lower"
+subtitle = "RYZEN 9 9950X, RUST 1.97.1, EXAMPLES/SCENE-BENCH"
+date = "2026-10-14"
+suffix = " MS"
+decimals = 1
+notes = ["EACH SCENE IS ONE FILE: A QUARTER OF ITS OBJECTS ARE PREFAB PLACEMENTS WITH AN OVERRIDE, 32 MATERIALS."]
+
+[[parties]]
+name = "PFX-SCENE"
+
+[[groups]]
+name = "100 OBJECTS (14 KB)"
+rows = [
+  { label = "CHECK THE PROJECT", values = [3.24] },
+  { label = "RESOLVE THE SCENE", values = [2.82] },
+  { label = "CHECK AN UNSAVED BUFFER", values = [2.83] },
+  { label = "ONE EDIT, CHECKED, WRITTEN", values = [5.94] },
+]
+
+[[groups]]
+name = "1,000 OBJECTS (144 KB)"
+rows = [
+  { label = "CHECK THE PROJECT", values = [27.71] },
+  { label = "RESOLVE THE SCENE", values = [25.37] },
+  { label = "CHECK AN UNSAVED BUFFER", values = [33.01] },
+  { label = "ONE EDIT, CHECKED, WRITTEN", values = [122.27] },
+]

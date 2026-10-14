@@ -2,8 +2,13 @@
 
 ## Unreleased
 
+### Added
+
+- Three more examples: `scene-tree` prints a resolved scene, `scene-write` moves, renames, sets a material or migrates a file, and `scene-bench` measures checking, resolving and editing scenes of any size.
+
 ### Changed
 
+- The README shows each feature with a clip, and its speed with a chart and a table of measured times.
 - The brand now reads PITO MD in the README, NOTICE.md and TRADEMARKS.md.
 
 ## v0.1.0

@@ -4,11 +4,15 @@ grid = [100, 20]
 frame = "window"
 typing = "35ms"
 cwd = "{scratch}/demo"
-setup = "rm -rf {scratch}/demo && cp -r {app}/examples/demo {scratch}/demo && sed -i 's/brass/bras/; s/ball.gltf/Ball.gltf/' {scratch}/demo/scenes/room.scene.toml"
+setup = "rm -rf {scratch}/demo {scratch}/tree {scratch}/write {scratch}/migrate && cp -r {app}/examples/demo {scratch}/demo && cp -r {app}/examples/demo {scratch}/tree && cp -r {app}/examples/demo {scratch}/write && cp -r {app}/examples/demo {scratch}/migrate && sed -i 's/brass/bras/; s/ball.gltf/Ball.gltf/' {scratch}/demo/scenes/room.scene.toml && cp {app}/render/terminal/room-format0.scene.toml {scratch}/migrate/scenes/room.scene.toml && mkdir {scratch}/write/tmp {scratch}/migrate/tmp && cp {scratch}/write/scenes/room.scene.toml {scratch}/write/tmp/room.toml && cp {scratch}/migrate/scenes/room.scene.toml {scratch}/migrate/tmp/room.toml"
 
 [build]
-command = "cargo build --release --locked --example scene-check"
+command = "cargo build --release --locked --examples"
 bin_dir = "{target}/release/examples"
+
+[env]
+HOME = "home"
+GIT_PAGER = "cat"
 
 [theme]
 name = "pfx-scene"
@@ -37,6 +41,35 @@ brightWhite = "#a6adc8"
 kind = "clip"
 line = "The scene-check example on the demo project with two mistakes: each error at its line and column with its code, then both fixed and the scene resolved"
 tape = "render/terminal/check.tape"
+settle = "1s"
+closure = { crossfade = 0.5 }
+status = "SHIPPED"
+
+[shots.tree]
+kind = "clip"
+line = "The scene-tree example on the demo project: the room resolved, two crates placed from one prefab with namespaced keys and ids, and the second crate's density override"
+tape = "render/terminal/tree.tape"
+launch = "cd {scratch}/tree && clear"
+settle = "1s"
+closure = { crossfade = 0.5 }
+status = "SHIPPED"
+
+[shots.write]
+kind = "clip"
+line = "The scene-write example: a move and a rename written in place with the comments and order kept, and a misspelt material refused before anything is written"
+tape = "render/terminal/write.tape"
+launch = "cd {scratch}/write && clear"
+grid = [100, 28]
+settle = "1s"
+closure = { crossfade = 0.5 }
+status = "SHIPPED"
+
+[shots.migrate]
+kind = "clip"
+line = "The scene-write example migrating a format 0 scene: the format line, root-relative paths, the body moved into its object and stable ids written in"
+tape = "render/terminal/migrate.tape"
+launch = "cd {scratch}/migrate && clear"
+grid = [100, 28]
 settle = "1s"
 closure = { crossfade = 0.5 }
 status = "SHIPPED"

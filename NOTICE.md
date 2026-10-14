@@ -10,4 +10,4 @@ The commits named here are from the engine's development history before its publ
 
 The demo project's meshes in `examples/demo/assets/` are copies of the test meshes in `tests/fixtures/assets/`.
 
-`docs/check.gif`, the README's clip, is a recording of the `scene-check` example on the demo project, made from this repository with the recipe in `render/terminal.toml`, and is MIT licensed with the code.
+The README's clips, `docs/images/check.gif`, `docs/images/tree.gif`, `docs/images/write.gif` and `docs/images/migrate.gif`, are recordings of the `scene-check`, `scene-tree` and `scene-write` examples on copies of the demo project (the migration clip on `render/terminal/room-format0.scene.toml`), made from this repository with the recipe in `render/terminal.toml`. The chart `docs/images/speed.png` is drawn from `render/charts/speed.toml`, which holds the `scene-bench` example's measurements. All are MIT licensed with the code.

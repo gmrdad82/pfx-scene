@@ -1,0 +1,14 @@
+materials = ["../materials/room.materials.toml"]
+
+[mesh.block]
+file = "../assets/block.gltf"
+
+# The floor is a flattened block.
+[[object]]
+name = "floor"
+mesh = "block"
+material = "oak"
+scale = [8.0, 0.1, 8.0]
+
+[body.floor]
+kind = "fixed"
