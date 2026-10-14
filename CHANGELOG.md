@@ -1,15 +1,22 @@
 # Changelog
 
-## Unreleased
+## v1.0.0 — 2026-10-14
+
+The first stable release. Format 1 and the API are the same as in v0.1.0, so moving to this tag needs no change.
 
 ### Added
 
-- Three more examples: `scene-tree` prints a resolved scene, `scene-write` moves, renames, sets a material or migrates a file, and `scene-bench` measures checking, resolving and editing scenes of any size.
+- Three more examples: `scene-tree` prints a resolved scene, `scene-write` moves, renames, sets a material or migrates a file, and `scene-bench` times checking, resolving and editing scenes of any size.
 
 ### Changed
 
-- The README shows each feature with a clip, and its speed with a chart and a table of measured times.
-- The brand now reads PITO MD in the README, NOTICE.md and TRADEMARKS.md.
+- The README shows each feature with a clip, and its measured speed: a 1,000-object scene resolves in 25 ms.
+- Every push is tested on Linux, Windows and macOS.
+- The brand reads PITO MD in the README, NOTICE.md and TRADEMARKS.md.
+
+### Fixed
+
+- The crate builds with no warnings on the newest Rust lints.
 
 ## v0.1.0
 
