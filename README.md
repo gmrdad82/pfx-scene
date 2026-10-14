@@ -20,7 +20,7 @@ Add it to a Rust project, on Linux, Windows or macOS:
 
 ```toml
 [dependencies]
-pfx-scene = { git = "https://github.com/gmrdad82/pfx-scene", tag = "v1.0.0" }
+pfx-scene = { git = "https://github.com/gmrdad82/pfx-scene", tag = "v1.0.1" }
 ```
 
 Or try it on the demo project first, with a stable Rust toolchain:

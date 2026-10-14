@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.1 — 2026-10-14
+
+### Added
+
+- Every release carries its documentation as `docs-vX.Y.Z.tar.gz`: eight guides with real commands and output, the format, the changelog and the API reference.
+
 ## v1.0.0 — 2026-10-14
 
 The first stable release. Format 1 and the API are the same as in v0.1.0, so moving to this tag needs no change.

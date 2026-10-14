@@ -13,7 +13,7 @@ The crate is published on GitHub and pinned by tag. In your `Cargo.toml`, on any
 
 ```toml
 [dependencies]
-pfx-scene = { git = "https://github.com/gmrdad82/pfx-scene", tag = "v1.0.0" }
+pfx-scene = { git = "https://github.com/gmrdad82/pfx-scene", tag = "v1.0.1" }
 ```
 
 Then `use pfx_scene::…` in your code. Every tag is on the [releases page](https://github.com/gmrdad82/pfx-scene/releases).
