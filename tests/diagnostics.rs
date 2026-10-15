@@ -604,7 +604,7 @@ fn the_engines_refusals_are_kept() {
         (
             "camera-ortho-fstop",
             "format = 1\n\n[camera]\nprojection = \"orthographic\"\nheight = 2.0\nfstop = 2.8\n",
-            "not fov, focal, sensor, fstop or focus",
+            "not fov, focal, sensor, fstop, focus or focus_keys",
         ),
         (
             "preset-key",
