@@ -1,5 +1,18 @@
 # Changelog
 
+## v1.1.0 — 2026-10-16
+
+### Added
+
+- Add spot and parented lights, particles, flare, motion blur, outdoor haze, wet materials, LUT files, focus keys and a scene sound file.
+- Count the new finish key and the ortho camera's focus_keys in the tests.
+
+### Changed
+
+- Show the PITO MD mark at the README's licence section.
+- Use the PITO MD wordmark at the licence section.
+- Let a light or particle system ride a glTF node inside its parent.
+
 ## v1.0.1 — 2026-10-14
 
 ### Added
