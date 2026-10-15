@@ -418,8 +418,9 @@ events = [{ name = "step", clip = "Walk", time = 0.4 }]
 | `kind` | `"point"` or `"spot"` | `"point"` | |
 | `position` | `[x, y, z]` | needed without `parent` | the light's place in the scene. A light with a `parent` takes `at` instead. |
 | `parent` | reference | none | an object the light rides, such as a car's headlight. |
-| `at` | `[x, y, z]` | `[0, 0, 0]` | the light's place in its parent's frame; only with `parent`. |
-| `direction` | `[x, y, z]`, not zero | `[0, −1, 0]` | where a spot light points, in its parent's frame when it has one. Spot only. |
+| `node` | string | none | a glTF node inside the parent's mesh the light rides instead of the object itself; only with `parent`. The renderer refuses a node the mesh lacks. |
+| `at` | `[x, y, z]` | `[0, 0, 0]` | the light's place in its parent's frame (the node's, with `node`); only with `parent`. |
+| `direction` | `[x, y, z]`, not zero | `[0, −1, 0]` | where a spot light points, in its parent's frame (the node's, with `node`) when it has one. Spot only. |
 | `cone` | `[inner, outer]` degrees | `[30, 45]` | a spot light's full strength inside `inner`, fading to nothing at `outer`; 0 ≤ inner ≤ outer ≤ 180. Spot only. |
 | `color` | `[r, g, b]`, each ≥ 0 | `[1, 1, 1]` | |
 | `intensity` | number ≥ 0 | needed | |
@@ -506,14 +507,15 @@ Every key but `name` is optional; a key left out takes the renderer's default.
 | `id` | id | |
 | `name` | string, needed | unique among the particle systems. |
 | `parent` | reference | an object the system rides; its particles are born in the parent's frame. |
-| `at` | `[x, y, z]` | where particles are born: in the parent's frame, or the scene's without one. |
+| `node` | string | a glTF node inside the parent's mesh the system rides instead of the object itself; only with `parent`. The renderer refuses a node the mesh lacks. |
+| `at` | `[x, y, z]` | where particles are born: in the parent's frame (the node's, with `node`), or the scene's without a parent. |
 | `rate` | number ≥ 0 | particles born per second. |
 | `rate_keys` | array of `[seconds, rate]`, each ≥ 0, in time order | the rate over time, linear between keys; when present it drives the rate and `rate` is ignored. |
 | `burst` | unsigned integer | particles born at once when the system starts. |
 | `max` | integer ≥ 1 | the most particles alive at once. |
 | `lifetime` | `[low, high]` seconds, low > 0 | each particle lives a time between the two. |
 | `speed` | `[low, high]`, each ≥ 0 | each particle's starting speed, units per second. |
-| `direction` | `[x, y, z]`, not zero | the direction particles leave in. |
+| `direction` | `[x, y, z]`, not zero | the direction particles leave in, in the same frame as `at`. |
 | `cone` | number, 0 to 180 | degrees of spread about `direction`. |
 | `inherit` | number, 0 to 1 | how much of the parent's velocity a particle keeps. |
 | `gravity` | `[x, y, z]` | acceleration, units per second². |

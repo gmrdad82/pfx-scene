@@ -998,6 +998,25 @@ fn heading(issues: &mut Issues, key: &str, value: Option<[f32; 3]>) {
     }
 }
 
+fn node(
+    issues: &mut Issues,
+    kind: &str,
+    name: &str,
+    parent: &Option<String>,
+    node: &Option<String>,
+) {
+    match (parent, node) {
+        (_, Some(node)) if node.trim().is_empty() => {
+            issues.at(&["node"], format!("{kind} {name}: node names a glTF node"));
+        }
+        (None, Some(_)) => issues.at(
+            &["node"],
+            format!("{kind} {name}: node names a glTF node inside its parent and needs a parent"),
+        ),
+        _ => {}
+    }
+}
+
 pub(crate) fn light(light: &Light) -> Issues {
     let mut issues = Issues::default();
     let name = &light.name;
@@ -1027,6 +1046,7 @@ pub(crate) fn light(light: &Light) -> Issues {
             format!("light {name}: cone is [inner, outer] degrees, 0 <= inner <= outer <= 180"),
         );
     }
+    node(&mut issues, "light", name, &light.parent, &light.node);
     if light.parent.is_none() && light.at.is_some() {
         issues.at(
             &["at"],
@@ -1145,6 +1165,13 @@ pub(crate) fn sound(name: &str, sound: &Sound) -> Issues {
 pub(crate) fn particles(particles: &Particles) -> Issues {
     let mut issues = Issues::default();
     let name = &particles.name;
+    node(
+        &mut issues,
+        "particle system",
+        name,
+        &particles.parent,
+        &particles.node,
+    );
     if !finite(&particles.at.unwrap_or([0.0; 3])) {
         issues.at(
             &["at"],

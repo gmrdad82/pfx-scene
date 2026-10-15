@@ -147,6 +147,8 @@ pub struct Light {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub parent: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub node: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub at: Option<[f32; 3]>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub direction: Option<[f32; 3]>,
@@ -190,6 +192,8 @@ pub struct Particles {
     pub name: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub parent: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub node: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub at: Option<[f32; 3]>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
