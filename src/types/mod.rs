@@ -12,20 +12,21 @@ use serde::{Deserialize, Serialize};
 pub use either::Color;
 pub use finish::{
     Bloom, BloomKind, BloomTable, Dither, DitherKind, Finish, FinishKeys, Grain, GrainTable, Ink,
-    Lut, Outline, OutlineTable, STYLES, Scratches, ScratchesTable, Style, Tape, TapeDirection,
-    TapeTable, Tone, ToneKind, ToneTable, Vignette, VignetteKind, VignetteTable, Warmth,
-    WarmthKind, WarmthTable,
+    Lut, LutKey, Outline, OutlineTable, STYLES, Scratches, ScratchesTable, Style, Tape,
+    TapeDirection, TapeTable, Tone, ToneKind, ToneTable, Vignette, VignetteKind, VignetteTable,
+    Warmth, WarmthKind, WarmthTable,
 };
 pub use material::{
     Ageing, Blend, Content as ContentKind, ContentLayer, Family, LAYER_CAP, Maps, Material,
-    NoiseKind, NoiseLayer, Normal, NormalSource, PARAMS,
+    NoiseKind, NoiseLayer, Normal, NormalSource, PARAMS, Wet,
 };
 pub use scene::{
     Animation, BlendClip, Body, BodyKind, BodyShape, Bounds, Camera, Casters, CellSize, Character,
-    CharacterKind, ClipEvent, Content, Cue, Depth, Emitter, Haze, Hush, Light, Look, Mesh, Motion,
-    Mover, MoverKind, Node, Nudge, Object, Orbit, Physics, Plane, Plates, Preset, Projection,
-    Proxy, ProxyKind, Repeat, Rig, RigKind, Scale, Shadow, Sound, SpriteClip, Sun, SunModel, Text,
-    TileCell, TilePlane, Tiles, Trace, Trigger, Wander, Zoom,
+    CharacterKind, ClipEvent, Content, Cue, Depth, Emitter, Flare, Haze, Hush, Light, LightKind,
+    Look, Mesh, Motion, MotionBlur, Mover, MoverKind, Node, Nudge, Object, Orbit, ParticleBlend,
+    Particles, Physics, Plane, Plates, Preset, Projection, Proxy, ProxyKind, Repeat, Rig, RigKind,
+    Scale, Shadow, Sound, Sounds, SpriteClip, Sun, SunModel, Text, TileCell, TilePlane, Tiles,
+    Trace, Trigger, Wander, Zoom,
 };
 pub use sky::{Prepare, Room, RoomLamp, Sky, SkyKind};
 pub use tunable::{Tunable, TunableKind, TunableValue};
@@ -91,12 +92,14 @@ pub struct SceneFile {
     pub content: BTreeMap<String, Content>,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub text: BTreeMap<String, Text>,
-    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
-    pub sound: BTreeMap<String, Sound>,
+    #[serde(default, skip_serializing_if = "Sounds::is_empty")]
+    pub sound: Sounds,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub rig: Vec<Rig>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub tiles: Vec<Tiles>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub particles: Vec<Particles>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sun: Option<Sun>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -107,6 +110,10 @@ pub struct SceneFile {
     pub camera: Option<Camera>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub finish: Option<Finish>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub flare: Option<Flare>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub motion_blur: Option<MotionBlur>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub trace: Option<Trace>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -144,6 +151,8 @@ pub struct PrefabFile {
     pub sound: BTreeMap<String, Sound>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub rig: Vec<Rig>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub particles: Vec<Particles>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub authoring: Option<toml::Table>,
 }

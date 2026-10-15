@@ -13,8 +13,9 @@ use crate::rules::{self, Issues};
 use crate::scene::{Entry, Scene};
 use crate::spans::{KeyPath, Part};
 use crate::types::{
-    Camera, Content, Emitter, File, FileKind, Finish, Haze, Light, Material, Mesh, Mover, Object,
-    Physics, Plates, Proxy, Rig, Sky, Sound, Sun, Text, Tiles, Trace,
+    Camera, Content, Emitter, File, FileKind, Finish, FinishKeys, Flare, Haze, Light, LutKey,
+    Material, Mesh, MotionBlur, Mover, Object, Particles, Physics, Plates, Proxy, Rig, Sky, Sound,
+    Sun, Text, Tiles, Trace,
 };
 use crate::{Diagnostic, EditError, FORMAT, Id, Patch, PatchGroup, Severity};
 
@@ -320,6 +321,7 @@ impl Project {
             ids.extend(doc.sound.iter().filter_map(|(_, v)| v.id));
             ids.extend(doc.rig.iter().filter_map(|(_, v)| v.id));
             ids.extend(doc.tiles.iter().filter_map(|(_, v)| v.id));
+            ids.extend(doc.particles.iter().filter_map(|(_, v)| v.id));
             ids.extend(doc.library.iter().filter_map(|(_, v)| v.id));
             ids.extend(doc.proxy.iter().filter_map(|(_, v)| v.id));
         }
@@ -501,10 +503,11 @@ enum Kind {
     Sound,
     Rig,
     Tiles,
+    Particles,
 }
 
 impl Kind {
-    const ALL: [Kind; 10] = [
+    const ALL: [Kind; 11] = [
         Kind::Mesh,
         Kind::Object,
         Kind::Light,
@@ -515,6 +518,7 @@ impl Kind {
         Kind::Sound,
         Kind::Rig,
         Kind::Tiles,
+        Kind::Particles,
     ];
 
     fn word(self) -> &'static str {
@@ -529,6 +533,7 @@ impl Kind {
             Kind::Sound => "sound",
             Kind::Rig => "rig",
             Kind::Tiles => "tile layer",
+            Kind::Particles => "particle system",
         }
     }
 }
@@ -555,12 +560,16 @@ struct Scope {
     sounds: Vec<Item<Sound>>,
     rigs: Vec<Item<Rig>>,
     tiles: Vec<Item<Tiles>>,
+    particles: Vec<Item<Particles>>,
     fallback: Option<Single<String>>,
+    sound_file: Option<Single<String>>,
     sun: Option<Single<Sun>>,
     sky: Option<Single<Sky>>,
     haze: Option<Single<Haze>>,
     camera: Option<Single<Camera>>,
     finish: Option<Single<Finish>>,
+    flare: Option<Single<Flare>>,
+    motion_blur: Option<Single<MotionBlur>>,
     trace: Option<Single<Trace>>,
     plates: Option<Single<Plates>>,
     physics: Option<Single<Physics>>,
@@ -610,6 +619,7 @@ impl Scope {
             Kind::Sound => list(&self.sounds),
             Kind::Rig => list(&self.rigs),
             Kind::Tiles => list(&self.tiles),
+            Kind::Particles => list(&self.particles),
         }
     }
 
@@ -625,6 +635,7 @@ impl Scope {
             Kind::Sound => lookup(&self.sounds, reference),
             Kind::Rig => lookup(&self.rigs, reference),
             Kind::Tiles => lookup(&self.tiles, reference),
+            Kind::Particles => lookup(&self.particles, reference),
         }
     }
 }
@@ -685,6 +696,7 @@ struct Placed {
     texts: Vec<Out<Text>>,
     sounds: Vec<Out<Sound>>,
     rigs: Vec<Out<Rig>>,
+    particles: Vec<Out<Particles>>,
     libraries: Vec<(PathBuf, PathBuf, KeyPath)>,
     files: Vec<PathBuf>,
 }
@@ -1038,6 +1050,7 @@ impl<'p> Checker<'p> {
             FileKind::Finish => {
                 if let Some(keys) = &doc.finish_keys {
                     self.issues(file, &Vec::new(), rules::finish_keys(keys));
+                    self.lut_path(file, &Vec::new(), keys);
                 }
             }
         }
@@ -1133,6 +1146,31 @@ impl<'p> Checker<'p> {
                 Part::Value,
             );
             self.issues(file, &path, rules::light(light));
+            let placed = self
+                .parsed
+                .get(file)
+                .is_none_or(|parsed| parsed.spans.has(&under(&path, &["position".into()])));
+            if light.parent.is_none() && !placed {
+                self.issue(
+                    file,
+                    &path,
+                    code::MISSING_KEY,
+                    format!(
+                        "missing key 'position': light {} has no parent, so it needs a position",
+                        light.name
+                    ),
+                );
+            } else if light.parent.is_some() && placed {
+                self.issue(
+                    file,
+                    &under(&path, &["position".into()]),
+                    code::BAD_VALUE,
+                    format!(
+                        "light {} has a parent, so at places it, not position",
+                        light.name
+                    ),
+                );
+            }
             self.missing_id(file, path, &format!("light {}", light.name), light.id);
         }
         for (place, emitter) in &doc.emitter {
@@ -1219,6 +1257,26 @@ impl<'p> Checker<'p> {
             self.rows(file, &path, tiles);
             self.missing_id(file, path, &format!("tile layer {}", tiles.name), tiles.id);
         }
+        for (place, particles) in &doc.particles {
+            let path = key(&["particles", &place.to_string()]);
+            self.named(
+                file,
+                &under(&path, &["name".into()]),
+                "particle system",
+                &particles.name,
+                Part::Value,
+            );
+            self.issues(file, &path, rules::particles(particles));
+            self.missing_id(
+                file,
+                path,
+                &format!("particle system {}", particles.name),
+                particles.id,
+            );
+        }
+        if let Some(raw) = &doc.sound_file {
+            self.asset(file, &key(&["sound"]), raw, &[".sound.toml"]);
+        }
         if let Some(sun) = &doc.sun {
             self.issues(file, &key(&["sun"]), rules::sun(sun));
         }
@@ -1246,11 +1304,25 @@ impl<'p> Checker<'p> {
         }
         if let Some(finish) = &doc.finish {
             self.issues(file, &key(&["finish"]), rules::finish(finish));
+            self.lut_path(file, &key(&["finish"]), &finish.keys());
+            for (place, pass) in finish.pass.iter().enumerate() {
+                self.lut_path(file, &key(&["finish", "pass", &place.to_string()]), pass);
+            }
             if let Some(raw) = &finish.file
                 && let Some(target) = self.asset(file, &key(&["finish", "file"]), raw, &[])
             {
                 self.load(&target, FileKind::Finish);
             }
+        }
+        if let Some(flare) = &doc.flare {
+            self.issues(file, &key(&["flare"]), rules::flare(flare));
+        }
+        if let Some(motion_blur) = &doc.motion_blur {
+            self.issues(
+                file,
+                &key(&["motion_blur"]),
+                rules::motion_blur(motion_blur),
+            );
         }
         if let Some(trace) = &doc.trace {
             self.issues(file, &key(&["trace"]), rules::trace(trace));
@@ -1267,6 +1339,12 @@ impl<'p> Checker<'p> {
         }
         if let Some(physics) = &doc.physics {
             self.issues(file, &key(&["physics"]), rules::physics(physics));
+        }
+    }
+
+    fn lut_path(&mut self, file: &Path, path: &KeyPath, keys: &FinishKeys) {
+        if let Some(LutKey::Path(raw)) = &keys.lut {
+            self.asset(file, &under(path, &["lut".into()]), raw, &[".cube"]);
         }
     }
 
@@ -1545,12 +1623,29 @@ impl<'p> Checker<'p> {
                     value: tiles,
                 });
             }
+            for (place, particles) in doc.particles {
+                scope.particles.push(Item {
+                    file: member.clone(),
+                    path: at(&["particles", &place.to_string()]),
+                    id: particles.id,
+                    name: particles.name.clone(),
+                    value: particles,
+                });
+            }
             self.single(&mut scope.fallback, member, "fallback", doc.fallback);
+            self.single(&mut scope.sound_file, member, "sound", doc.sound_file);
             self.single(&mut scope.sun, member, "sun", doc.sun);
             self.single(&mut scope.sky, member, "sky", doc.sky);
             self.single(&mut scope.haze, member, "haze", doc.haze);
             self.single(&mut scope.camera, member, "camera", doc.camera);
             self.single(&mut scope.finish, member, "finish", doc.finish);
+            self.single(&mut scope.flare, member, "flare", doc.flare);
+            self.single(
+                &mut scope.motion_blur,
+                member,
+                "motion_blur",
+                doc.motion_blur,
+            );
             self.single(&mut scope.trace, member, "trace", doc.trace);
             self.single(&mut scope.plates, member, "plates", doc.plates);
             self.single(&mut scope.physics, member, "physics", doc.physics);
@@ -1609,8 +1704,8 @@ impl<'p> Checker<'p> {
         let Some(value) = value else { return };
         let path = key(&[word]);
         if let Some(first) = slot {
-            let what = if word == "fallback" {
-                "fallback".to_string()
+            let what = if word == "fallback" || word == "sound" {
+                word.to_string()
             } else {
                 format!("[{word}]")
             };
@@ -1840,6 +1935,9 @@ impl<'p> Checker<'p> {
                         Kind::Tiles => Self::apply(&scope.tiles[*at].value, change)
                             .and_then(|v| checked(rules::tiles(&v)).map(|()| v))
                             .map(|v| scope.tiles[*at].value = v),
+                        Kind::Particles => Self::apply(&scope.particles[*at].value, change)
+                            .and_then(|v| checked(rules::particles(&v)).map(|()| v))
+                            .map(|v| scope.particles[*at].value = v),
                     };
                     match result {
                         Err(message) => self.reject(
@@ -1951,6 +2049,7 @@ impl<'p> Checker<'p> {
         inner.texts.extend(result.texts);
         inner.sounds.extend(result.sounds);
         inner.rigs.extend(result.rigs);
+        inner.particles.extend(result.particles);
         frame.placed.libraries.extend(result.libraries);
         for file in result.files {
             if !frame.placed.files.contains(&file) {
@@ -2186,6 +2285,56 @@ impl<'p> Checker<'p> {
                 set: Vec::new(),
             });
         }
+        for (at, item) in scope.lights.iter().enumerate() {
+            let mut value = item.value.clone();
+            if let Some(parent) = &item.value.parent {
+                value.parent = resolve(
+                    self,
+                    &item.file,
+                    &under(&item.path, &["parent".into()]),
+                    Kind::Object,
+                    parent,
+                    &inner_object_key,
+                );
+            }
+            placed.lights.push(Out {
+                entry: Entry {
+                    key: name_key(&item.name),
+                    id: full_id(item.id),
+                    file: item.file.clone(),
+                    value,
+                },
+                own: own.then(|| item.path.clone()),
+                at: item.path.clone(),
+                set: touched.remove(&(Kind::Light, at)).unwrap_or_default(),
+            });
+        }
+        for (at, item) in scope.particles.iter().enumerate() {
+            let mut value = item.value.clone();
+            if let Some(parent) = &item.value.parent {
+                value.parent = resolve(
+                    self,
+                    &item.file,
+                    &under(&item.path, &["parent".into()]),
+                    Kind::Object,
+                    parent,
+                    &inner_object_key,
+                );
+            } else if let Some(prefix) = prefix {
+                value.parent = Some(prefix.key.clone());
+            }
+            placed.particles.push(Out {
+                entry: Entry {
+                    key: name_key(&item.name),
+                    id: full_id(item.id),
+                    file: item.file.clone(),
+                    value,
+                },
+                own: own.then(|| item.path.clone()),
+                at: item.path.clone(),
+                set: touched.remove(&(Kind::Particles, at)).unwrap_or_default(),
+            });
+        }
         macro_rules! plain {
             ($from:ident) => {
                 for item in &scope.$from {
@@ -2204,7 +2353,6 @@ impl<'p> Checker<'p> {
             };
         }
         plain!(meshes);
-        plain!(lights);
         plain!(emitters);
         plain!(contents);
         plain!(texts);
@@ -2217,6 +2365,7 @@ impl<'p> Checker<'p> {
         placed.texts.extend(inner.texts);
         placed.sounds.extend(inner.sounds);
         placed.rigs.extend(inner.rigs);
+        placed.particles.extend(inner.particles);
         placed
     }
 
@@ -2358,6 +2507,7 @@ impl<'p> Checker<'p> {
         scene.texts = placed.texts.into_iter().map(|out| out.entry).collect();
         scene.sounds = placed.sounds.into_iter().map(|out| out.entry).collect();
         scene.rigs = placed.rigs.into_iter().map(|out| out.entry).collect();
+        scene.particles = placed.particles.into_iter().map(|out| out.entry).collect();
         scene.layers = self
             .layers()
             .map(|layers| (*layers).clone())
@@ -2369,6 +2519,13 @@ impl<'p> Checker<'p> {
         scene.sun = scope.sun.as_ref().map(|single| single.value.clone());
         scene.sky = scope.sky.as_ref().map(|single| single.value.clone());
         scene.haze = scope.haze.as_ref().map(|single| single.value.clone());
+        scene.flare = scope.flare.as_ref().map(|single| single.value);
+        scene.motion_blur = scope.motion_blur.as_ref().map(|single| single.value);
+        scene.sound_file = scope
+            .sound_file
+            .as_ref()
+            .and_then(|single| rooted(&single.value).ok())
+            .map(PathBuf::from);
         scene.camera = scope.camera.as_ref().map(|single| single.value.clone());
         scene.trace = scope.trace.as_ref().map(|single| single.value);
         scene.plates = scope.plates.as_ref().map(|single| single.value.clone());
@@ -2840,6 +2997,11 @@ impl<'p> Checker<'p> {
                 doc.tiles
                     .iter()
                     .filter_map(|(p, v)| v.id.map(|id| (id, list("tiles", *p)))),
+            );
+            ids.extend(
+                doc.particles
+                    .iter()
+                    .filter_map(|(p, v)| v.id.map(|id| (id, list("particles", *p)))),
             );
             ids.extend(
                 doc.library

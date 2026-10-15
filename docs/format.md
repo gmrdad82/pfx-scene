@@ -194,9 +194,11 @@ A body, a character and a trigger take a layer by its name (`layer`), and a trig
 | `[content.<name>]` | tables | none | images shown in a material's content layer. |
 | `[text.<name>]` | tables | none | text blocks. |
 | `[sound.<name>]` | tables | none | sounds. |
+| `sound` | path | none | a `*.sound.toml` file holding the scene's sound, in place of `[sound.<name>]` tables: a scene gives one or the other. At most one file of a scene and its includes holds it. |
 | `[[rig]]` | tables | none | camera rigs a game drives. |
 | `[[tiles]]` | tables | none | tile layers: grids of prefab placements. |
-| `[sun]`, `[sky]`, `[haze]`, `[camera]`, `[finish]`, `[trace]`, `[plates]`, `[physics]` | table | none | each held by one file of a scene and its includes at most. |
+| `[[particles]]` | tables | none | particle systems. |
+| `[sun]`, `[sky]`, `[haze]`, `[camera]`, `[finish]`, `[flare]`, `[motion_blur]`, `[trace]`, `[plates]`, `[physics]` | table | none | each held by one file of a scene and its includes at most. |
 | `[authoring]` | table | none | the authoring tool's. |
 
 A glTF material resolves to the library entry of its name, else of its name before the first `.` (`.001` suffixes), else `fallback`.
@@ -208,7 +210,7 @@ A glTF material resolves to the library entry of its name, else of its name befo
 | `format` | integer | 0 | `1`. |
 | `include` | array of paths | `[]` | `*.prefab.toml` files merged in. |
 | `materials` | array of paths | `[]` | the prefab's material libraries. |
-| `[mesh.<name>]`, `[[object]]`, `[[light]]`, `[[emitter]]`, `[[mover]]`, `[content.<name>]`, `[text.<name>]`, `[sound.<name>]`, `[[rig]]` | tables | none | as in a scene. |
+| `[mesh.<name>]`, `[[object]]`, `[[light]]`, `[[emitter]]`, `[[mover]]`, `[content.<name>]`, `[text.<name>]`, `[sound.<name>]`, `[[rig]]`, `[[particles]]` | tables | none | as in a scene. A particle system without a `parent` rides its placement. |
 | `[authoring]` | table | none | the authoring tool's. |
 
 ### `[mesh.<name>]`: geometry from glTF
@@ -413,7 +415,12 @@ events = [{ name = "step", clip = "Walk", time = 0.4 }]
 |---|---|---|---|
 | `id` | id | none | |
 | `name` | string | needed | unique among the lights. |
-| `position` | `[x, y, z]` | needed | |
+| `kind` | `"point"` or `"spot"` | `"point"` | |
+| `position` | `[x, y, z]` | needed without `parent` | the light's place in the scene. A light with a `parent` takes `at` instead. |
+| `parent` | reference | none | an object the light rides, such as a car's headlight. |
+| `at` | `[x, y, z]` | `[0, 0, 0]` | the light's place in its parent's frame; only with `parent`. |
+| `direction` | `[x, y, z]`, not zero | `[0, −1, 0]` | where a spot light points, in its parent's frame when it has one. Spot only. |
+| `cone` | `[inner, outer]` degrees | `[30, 45]` | a spot light's full strength inside `inner`, fading to nothing at `outer`; 0 ≤ inner ≤ outer ≤ 180. Spot only. |
 | `color` | `[r, g, b]`, each ≥ 0 | `[1, 1, 1]` | |
 | `intensity` | number ≥ 0 | needed | |
 | `radius` | number ≥ 0 | `0` | |
@@ -489,6 +496,40 @@ The block reads along its local +X with +Y up and faces +Z.
 | `play` | `"start"`, `"hit"` or `"game"` | `"start"` | when play starts, when `object`'s body starts a contact, or when a game plays it. |
 | `object` | reference | needed for `"hit"`, refused otherwise | an object with a `[object.body]`. |
 | `authoring` | any | none | |
+
+### `[[particles]]`: a particle system
+
+Every key but `name` is optional; a key left out takes the renderer's default.
+
+| key | type | notes |
+|---|---|---|
+| `id` | id | |
+| `name` | string, needed | unique among the particle systems. |
+| `parent` | reference | an object the system rides; its particles are born in the parent's frame. |
+| `at` | `[x, y, z]` | where particles are born: in the parent's frame, or the scene's without one. |
+| `rate` | number ≥ 0 | particles born per second. |
+| `rate_keys` | array of `[seconds, rate]`, each ≥ 0, in time order | the rate over time, linear between keys; when present it drives the rate and `rate` is ignored. |
+| `burst` | unsigned integer | particles born at once when the system starts. |
+| `max` | integer ≥ 1 | the most particles alive at once. |
+| `lifetime` | `[low, high]` seconds, low > 0 | each particle lives a time between the two. |
+| `speed` | `[low, high]`, each ≥ 0 | each particle's starting speed, units per second. |
+| `direction` | `[x, y, z]`, not zero | the direction particles leave in. |
+| `cone` | number, 0 to 180 | degrees of spread about `direction`. |
+| `inherit` | number, 0 to 1 | how much of the parent's velocity a particle keeps. |
+| `gravity` | `[x, y, z]` | acceleration, units per second². |
+| `drag` | number ≥ 0 | |
+| `size` | two numbers ≥ 0 | sizes in scene units. |
+| `alpha` | array of `[t, alpha]`, each 0 to 1 | opacity over a particle's life, `t` from birth (0) to death (1). |
+| `color` | colour | one colour for the whole life. |
+| `colors` | array of `[t, colour]`, `t` 0 to 1 | colour over a particle's life. |
+| `spin` | two numbers | degrees per second. |
+| `stretch` | number ≥ 0 | how far a particle stretches along its motion. |
+| `blend` | `"alpha"` or `"add"` | `"alpha"` by default. |
+| `lit` | bool | lit particles are shaded by the scene. |
+| `seed` | unsigned integer | |
+| `authoring` | any | |
+
+A *colour* is `"#rrggbb"` (sRGB, read as linear) or `[r, g, b]`. `colour` and `colours` read as `color` and `colors`.
 
 ### `[[rig]]`: a camera rig
 
@@ -656,12 +697,19 @@ An analytic sky takes `turbidity`, `ground_albedo` and `ambient` and follows the
 
 A layer is not a mix and holds no layers. The mix is baked once, on load, into one HDR.
 
-### `[haze]`: a room haze
+### `[haze]`: a room or outdoor haze
+
+A haze fills a box (a room haze, with `lo` and `hi`) or the open air (an outdoor haze, with `height` or `falloff`). An outdoor haze needs no box, and its `reach` is how far the march goes, in metres.
 
 | key | type | default | notes |
 |---|---|---|---|
-| `lo` | `[x, y, z]` | needed | the haze's lower bounds. |
-| `hi` | `[x, y, z]` | needed | its upper bounds; `lo` is below `hi` on every axis. |
+| `lo` | `[x, y, z]` | needed for a room haze | the haze's lower bounds. |
+| `hi` | `[x, y, z]` | needed for a room haze | its upper bounds; `lo` is below `hi` on every axis. |
+| `height` | number | none | an outdoor haze: the height its density is measured from. |
+| `falloff` | number ≥ 0 | none | an outdoor haze: how fast its density thins with height. |
+| `shafts` | number, 0 to 1 | none | the strength of light shafts through the haze. |
+| `steps` | integer ≥ 1 | none | march steps. |
+| `color` | colour | none | the haze's colour; `colour` reads the same. |
 | `amount` | number, 0 to 1 | `0` | sets the four densities below; without it the haze is clear. |
 | `fog` | number ≥ 0 | `amount / 6` | |
 | `smoke` | number ≥ 0 | `amount · 20` | |
@@ -692,6 +740,7 @@ A layer is not a mix and holds no layers. The mix is baked once, on load, into o
 | `shift` | `[x, y]` | `[0, 0]` | lens shift in halves of the view, right and up (`0.5` moves the picture a quarter of its width). |
 | `fstop` | number > 0 | none | perspective: depth of field through a thin lens of the camera's focal length at this f-number. Without it everything is sharp. |
 | `focus` | number | the distance from `at` to `look_at` | perspective, with `fstop` only: the focus distance in scene units, beyond the focal length. |
+| `focus_keys` | array of `[seconds, distance]` | none | perspective, with `fstop` only: the focus distance over time, linear between keys and held past the ends; seconds ≥ 0 and in order, distances > 0. When present it drives the focus and `focus` is ignored. |
 | `preset` | table | none | `[camera.preset]`. |
 
 An orthographic camera refuses `fov`, `focal`, `sensor`, `fstop` and `focus`.
@@ -780,7 +829,8 @@ The finish keys. A *colour* is `"#rrggbb"` (sRGB, read as linear) or `[r, g, b]`
 | `keep_range` | number | noir: how much of it. |
 | `levels` | number | posterize (or comic) levels. |
 | `line_weight` | number | modern comic. |
-| `lut` | table | a colour lookup table, below. |
+| `lut` | path or table | a colour lookup table: a path to a `.cube` file, or the table below. |
+| `lut_amount` | number, 0 to 1 | how much of the lookup table applies. |
 | `mask` | number | aperture grille. |
 | `outline` | bool or table | turns the outline on or off; the table below. |
 | `outline_alpha` | number | outline opacity. |
@@ -821,7 +871,7 @@ The finish keys' tables (each key optional unless said):
 |---|---|
 | `bloom` | `strength`, `threshold`, `knee`, `knee_width`, `soft`, `sigma`, `clamp`, `unit` (numbers); `radius` (whole number); `down` (whole number; `0` reads as `1`); `linear_taps` (bool); `radii`, `gains` (four numbers each); `kind` (`"box"`, `"rings"` or `"tent"`) |
 | `grain` | `strength`, `response` (numbers); `clamp` (bool) |
-| `lut` | `size` (integer, 2 to 32, needed); `values` (`size³ · 3` numbers, red, green and blue per entry, needed) |
+| `lut` | `size` (integer, 2 to 64, needed); `values` (`size³ · 3` numbers, red, green and blue per entry, needed) |
 | `outline` | `enabled`, `local_color` (bools); `thickness`, `alpha`, `crease_angle` (numbers); `color` (colour) |
 | `scratches` | `count` (unsigned integer); `strength` (number) |
 | `tape` | `direction` (`"forward"` or `"rewind"`); `strength` (number ≥ 0, read up to 1); `bands`, `echo`, `grain`, `smear`, `split`, `wash` (numbers ≥ 0) |
@@ -830,6 +880,30 @@ The finish keys' tables (each key optional unless said):
 | `warmth` | `amount`, `shadow`, `highlight` (numbers); `low`, `high` (two numbers each); `kind` (`"linear"` or `"luma_curve"`) |
 
 A `tape` number is a strength ≥ 0, read up to 1.
+
+### `[flare]`
+
+A lens flare from the image's bright parts. Every key is optional; a key left out takes the renderer's default.
+
+| key | type | notes |
+|---|---|---|
+| `amount` | number, 0 to 1 | the flare's strength. |
+| `ghosts` | unsigned integer | ghost count. |
+| `ghost_spacing` | number ≥ 0 | |
+| `halo` | number ≥ 0 | the halo's strength. |
+| `halo_radius` | number ≥ 0 | |
+| `starburst` | number ≥ 0 | |
+| `threshold` | number ≥ 0 | the brightness a flare starts from. |
+
+### `[motion_blur]`
+
+Every key is optional; a key left out takes the renderer's default.
+
+| key | type | notes |
+|---|---|---|
+| `shutter` | number, 0 to 1 | the share of a frame the shutter stays open. |
+| `max_px` | number ≥ 0 | the longest streak, in pixels. |
+| `samples` | integer ≥ 1 | |
 
 ### `[trace]`
 
@@ -903,6 +977,7 @@ Play mode's rigid world; renderers ignore it.
 | `content_layer` | table | below | `[materials.<name>.content_layer]`. |
 | `layers` | tables | none | `[[materials.<name>.layers]]`: at most four noise layers. |
 | `ageing` | table | every key `0` | `[materials.<name>.ageing]`. |
+| `wet` | table | none | `[materials.<name>.wet]`: a wet surface, below. |
 | `authoring` | any | none | |
 
 The families: `plain`, `paper`, `plaster`, `stone`, `cloth`, `metal`, `occluder`, `petal`, `leaf`, `bark`, `cord`, `wood`, `lacquer`, `glass`, `liquid`, `emissive`, `chrome`. The content kinds: `none`, `ink`, `decal`, `screen`, `photo`, `scroll`, `print`, `field`.
@@ -925,6 +1000,8 @@ The families: `plain`, `paper`, `plaster`, `stone`, `cloth`, `metal`, `occluder`
 | `ink_roughness` | number | `-1` | `-1` keeps the surface's. |
 | `emboss` | number | `0` | |
 | `strength` | number | `1` | |
+
+`wet` keys, each optional: `amount` (number, 0 to 1, how wet), `puddles` (number, 0 to 1, how much of the surface stands in puddles), `puddle_scale` (number > 0, the puddles' size in scene units) and `seed` (unsigned integer).
 
 `ageing`, when present, needs all eight keys: `fade`, `yellow`, `ink`, `scratch`, `edge`, `dust`, `patina` (numbers, usually 0 to 1) and `seed` (unsigned integer).
 

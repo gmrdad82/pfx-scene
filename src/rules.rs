@@ -3,10 +3,11 @@ use std::collections::BTreeMap;
 
 use crate::types::{
     Animation, BlendClip, Body, BodyShape, Camera, Casters, Character, CharacterKind, Color,
-    Emitter, Finish, FinishKeys, Haze, Ink, LAYER_CAP, LAYER_COUNT, Light, Lut, Material, Mover,
-    MoverKind, Object, Physics, Plates, Preset, Projection, Proxy, ProxyKind, Rig, RigKind, Room,
-    Scratches, Sky, SkyKind, Sound, Sun, SunModel, Tape, Text, Tiles, Tone, ToneKind, Trace,
-    Trigger, Tunable, TunableKind, TunableValue,
+    Emitter, Finish, FinishKeys, Flare, Haze, Ink, LAYER_CAP, LAYER_COUNT, Light, LightKind, Lut,
+    LutKey, Material, MotionBlur, Mover, MoverKind, Object, Particles, Physics, Plates, Preset,
+    Projection, Proxy, ProxyKind, Rig, RigKind, Room, Scratches, Sky, SkyKind, Sound, Sun,
+    SunModel, Tape, Text, Tiles, Tone, ToneKind, Trace, Trigger, Tunable, TunableKind,
+    TunableValue,
 };
 
 pub(crate) struct Issue {
@@ -956,8 +957,85 @@ pub(crate) fn unknown_layer(layers: &BTreeMap<String, Vec<String>>, name: &str) 
     })
 }
 
+fn unit(issues: &mut Issues, key: &[&str], value: Option<f32>) {
+    if let Some(value) = value
+        && !(0.0..=1.0).contains(&value)
+    {
+        issues.at(
+            key,
+            format!("{} = {value} is outside 0 to 1", key.join(".")),
+        );
+    }
+}
+
+fn at_least(issues: &mut Issues, key: &str, value: Option<f32>, low: f32) {
+    if let Some(value) = value
+        && !(value.is_finite() && value >= low)
+    {
+        issues.at(
+            &[key],
+            format!("{key} = {value} is a number of at least {low}"),
+        );
+    }
+}
+
+fn span(issues: &mut Issues, key: &str, value: Option<[f32; 2]>) {
+    if let Some([low, high]) = value
+        && !(nonnegative(&[low, high]) && low <= high)
+    {
+        issues.at(
+            &[key],
+            format!("{key} is [low, high], both at least 0 and low at most high"),
+        );
+    }
+}
+
+fn heading(issues: &mut Issues, key: &str, value: Option<[f32; 3]>) {
+    if let Some(value) = value
+        && !(finite(&value) && dot(value, value) > 1e-12)
+    {
+        issues.at(&[key], format!("{key} is a finite nonzero vector"));
+    }
+}
+
 pub(crate) fn light(light: &Light) -> Issues {
     let mut issues = Issues::default();
+    let name = &light.name;
+    if light.kind.unwrap_or_default() == LightKind::Point {
+        for (key, present) in [
+            ("direction", light.direction.is_some()),
+            ("cone", light.cone.is_some()),
+        ] {
+            if present {
+                issues.at(
+                    &[key],
+                    format!("light {name}: {key} belongs to a spot light (kind = \"spot\")"),
+                );
+            }
+        }
+    }
+    heading(&mut issues, "direction", light.direction);
+    if let Some([inner, outer]) = light.cone
+        && !(inner.is_finite()
+            && outer.is_finite()
+            && 0.0 <= inner
+            && inner <= outer
+            && outer <= 180.0)
+    {
+        issues.at(
+            &["cone"],
+            format!("light {name}: cone is [inner, outer] degrees, 0 <= inner <= outer <= 180"),
+        );
+    }
+    if light.parent.is_none() && light.at.is_some() {
+        issues.at(
+            &["at"],
+            format!("light {name}: at places a light in its parent's frame and needs a parent"),
+        );
+    }
+    if !finite(&light.at.unwrap_or([0.0; 3])) {
+        issues.at(&["at"], format!("light {name}: at is three finite numbers"));
+    }
     let color = light.color.unwrap_or(Light::COLOR);
     let fine = finite(&light.position)
         && nonnegative(&color)
@@ -1064,11 +1142,153 @@ pub(crate) fn sound(name: &str, sound: &Sound) -> Issues {
     issues
 }
 
+pub(crate) fn particles(particles: &Particles) -> Issues {
+    let mut issues = Issues::default();
+    let name = &particles.name;
+    if !finite(&particles.at.unwrap_or([0.0; 3])) {
+        issues.at(
+            &["at"],
+            format!("particle system {name}: at is three finite numbers"),
+        );
+    }
+    at_least(&mut issues, "rate", particles.rate, 0.0);
+    if let Some(keys) = &particles.rate_keys {
+        let fine = keys.iter().all(|[t, rate]| nonnegative(&[*t, *rate]))
+            && keys.windows(2).all(|pair| pair[0][0] <= pair[1][0]);
+        if !fine {
+            issues.at(
+                &["rate_keys"],
+                format!("particle system {name}: rate_keys are [seconds, rate] pairs, both at least 0, in time order"),
+            );
+        }
+    }
+    if particles.max == Some(0) {
+        issues.at(
+            &["max"],
+            format!("particle system {name}: max is at least 1"),
+        );
+    }
+    span(&mut issues, "lifetime", particles.lifetime);
+    if let Some([low, _]) = particles.lifetime
+        && low <= 0.0
+    {
+        issues.at(
+            &["lifetime"],
+            format!("particle system {name}: lifetime is above 0"),
+        );
+    }
+    span(&mut issues, "speed", particles.speed);
+    heading(&mut issues, "direction", particles.direction);
+    if let Some(cone) = particles.cone
+        && !(0.0..=180.0).contains(&cone)
+    {
+        issues.at(
+            &["cone"],
+            format!("particle system {name}: cone = {cone} is outside 0 to 180 degrees"),
+        );
+    }
+    unit(&mut issues, &["inherit"], particles.inherit);
+    if !finite(&particles.gravity.unwrap_or([0.0; 3])) {
+        issues.at(
+            &["gravity"],
+            format!("particle system {name}: gravity is three finite numbers"),
+        );
+    }
+    at_least(&mut issues, "drag", particles.drag, 0.0);
+    if let Some(size) = particles.size
+        && !nonnegative(&size)
+    {
+        issues.at(
+            &["size"],
+            format!("particle system {name}: size is two numbers of at least 0"),
+        );
+    }
+    if let Some(alpha) = &particles.alpha
+        && !alpha
+            .iter()
+            .all(|pair| pair.iter().all(|value| (0.0..=1.0).contains(value)))
+    {
+        issues.at(
+            &["alpha"],
+            format!("particle system {name}: alpha is [t, alpha] pairs, both 0 to 1"),
+        );
+    }
+    color(&mut issues, "color", &particles.color);
+    if let Some(colors) = &particles.colors
+        && !colors
+            .iter()
+            .all(|(t, color)| (0.0..=1.0).contains(t) && color.valid())
+    {
+        issues.at(
+            &["colors"],
+            format!("particle system {name}: colors are [t, \"#rrggbb\"] pairs, t 0 to 1"),
+        );
+    }
+    if let Some(spin) = particles.spin
+        && !finite(&spin)
+    {
+        issues.at(
+            &["spin"],
+            format!("particle system {name}: spin is two finite numbers"),
+        );
+    }
+    at_least(&mut issues, "stretch", particles.stretch, 0.0);
+    issues
+}
+
+pub(crate) fn flare(flare: &Flare) -> Issues {
+    let mut issues = Issues::default();
+    unit(&mut issues, &["amount"], flare.amount);
+    for (key, value) in [
+        ("ghost_spacing", flare.ghost_spacing),
+        ("halo", flare.halo),
+        ("halo_radius", flare.halo_radius),
+        ("starburst", flare.starburst),
+        ("threshold", flare.threshold),
+    ] {
+        at_least(&mut issues, key, value, 0.0);
+    }
+    issues
+}
+
+pub(crate) fn motion_blur(motion_blur: &MotionBlur) -> Issues {
+    let mut issues = Issues::default();
+    unit(&mut issues, &["shutter"], motion_blur.shutter);
+    at_least(&mut issues, "max_px", motion_blur.max_px, 0.0);
+    if motion_blur.samples == Some(0) {
+        issues.at(&["samples"], "motion_blur samples is at least 1");
+    }
+    issues
+}
+
 pub(crate) fn haze(haze: &Haze) -> Issues {
     let mut issues = Issues::default();
-    if !finite(&haze.lo) || !finite(&haze.hi) || (0..3).any(|k| haze.lo[k] >= haze.hi[k]) {
-        issues.at(&[], "haze lo must lie below hi on every axis");
+    match (haze.lo, haze.hi) {
+        (Some(lo), Some(hi)) => {
+            if !finite(&lo) || !finite(&hi) || (0..3).any(|k| lo[k] >= hi[k]) {
+                issues.at(&[], "haze lo must lie below hi on every axis");
+            }
+        }
+        (None, None) if haze.outdoor() => {}
+        (lo, _) => {
+            let key = if lo.is_none() { "lo" } else { "hi" };
+            issues.at(
+                &[key],
+                format!("missing key '{key}': a room haze needs lo and hi; an outdoor haze sets height or falloff"),
+            );
+        }
     }
+    if let Some(height) = haze.height
+        && !height.is_finite()
+    {
+        issues.at(&["height"], "haze height is a finite number");
+    }
+    at_least(&mut issues, "falloff", haze.falloff, 0.0);
+    unit(&mut issues, &["shafts"], haze.shafts);
+    if haze.steps == Some(0) {
+        issues.at(&["steps"], "haze steps is at least 1");
+    }
+    color(&mut issues, "color", &haze.color);
     let amount = haze.amount.unwrap_or(0.0);
     if !(0.0..=1.0).contains(&amount) {
         issues.at(
@@ -1366,8 +1586,9 @@ pub(crate) fn camera(camera: &Camera) -> Issues {
                 || camera.sensor.is_some()
                 || camera.fstop.is_some()
                 || camera.focus.is_some()
+                || camera.focus_keys.is_some()
             {
-                issues.at(&["projection"], "an orthographic camera takes height and shift, not fov, focal, sensor, fstop or focus");
+                issues.at(&["projection"], "an orthographic camera takes height and shift, not fov, focal, sensor, fstop, focus or focus_keys");
             }
             if !camera.height.is_some_and(positive) {
                 issues.at(&[], "an orthographic camera needs a positive height");
@@ -1380,6 +1601,21 @@ pub(crate) fn camera(camera: &Camera) -> Issues {
     let at = camera.at.unwrap_or(Camera::AT);
     let look_at = camera.look_at.unwrap_or(Camera::LOOK_AT);
     let up = camera.up.unwrap_or(Camera::UP);
+    if let Some(keys) = &camera.focus_keys {
+        if camera.fstop.is_none() {
+            issues.at(&["focus_keys"], "camera focus_keys needs fstop");
+        }
+        let fine = keys
+            .iter()
+            .all(|[t, focus]| t.is_finite() && *t >= 0.0 && positive(*focus))
+            && keys.windows(2).all(|pair| pair[0][0] <= pair[1][0]);
+        if !fine {
+            issues.at(
+                &["focus_keys"],
+                "camera focus_keys are [seconds, distance] pairs, seconds at least 0 and in order, distance above 0",
+            );
+        }
+    }
     if camera.projection.unwrap_or_default() == Projection::Perspective {
         match (camera.fstop, camera.focus) {
             (None, Some(_)) => issues.at(&["focus"], "camera focus needs fstop"),
@@ -1686,9 +1922,9 @@ pub(crate) fn finish_keys(keys: &FinishKeys) -> Issues {
             }
         }
     }
-    if let Some(lut) = &keys.lut {
+    if let Some(LutKey::Table(lut)) = &keys.lut {
         if !Lut::SIZES.contains(&lut.size) {
-            issues.at(&["lut", "size"], "lut.size is from 2 to 32");
+            issues.at(&["lut", "size"], "lut.size is from 2 to 64");
         } else if lut.values.len() != lut.needs() {
             issues.at(
                 &["lut", "values"],
@@ -1696,6 +1932,7 @@ pub(crate) fn finish_keys(keys: &FinishKeys) -> Issues {
             );
         }
     }
+    unit(&mut issues, &["lut_amount"], keys.lut_amount);
     if let Some(Tape::Strength(value)) = keys.tape
         && !nonnegative(&[value])
     {
@@ -1782,6 +2019,18 @@ pub(crate) fn finish(finish: &Finish) -> Issues {
 
 pub(crate) fn material(name: &str, material: &Material) -> Issues {
     let mut issues = Issues::default();
+    if let Some(wet) = &material.wet {
+        unit(&mut issues, &["wet", "amount"], wet.amount);
+        unit(&mut issues, &["wet", "puddles"], wet.puddles);
+        if let Some(scale) = wet.puddle_scale
+            && !positive(scale)
+        {
+            issues.at(
+                &["wet", "puddle_scale"],
+                format!("material {name}: wet.puddle_scale is above 0"),
+            );
+        }
+    }
     if material.layers.len() > LAYER_CAP {
         issues.at(
             &["layers"],

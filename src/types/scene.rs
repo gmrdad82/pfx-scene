@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
-use super::either::either;
+use super::either::{Color, either};
 use super::{is_false, is_zero3};
 use crate::Id;
 
@@ -126,13 +126,32 @@ impl Object {
     }
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum LightKind {
+    #[default]
+    Point,
+    Spot,
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Light {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub id: Option<Id>,
     pub name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kind: Option<LightKind>,
+    #[serde(default)]
     pub position: [f32; 3],
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parent: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub at: Option<[f32; 3]>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub direction: Option<[f32; 3]>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cone: Option<[f32; 2]>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub color: Option<[f32; 3]>,
     pub intensity: f32,
@@ -151,6 +170,100 @@ impl Light {
     pub const RADIUS: f32 = 0.0;
     pub const RANGE: f32 = 10.0;
     pub const SHADOW: bool = true;
+    pub const DIRECTION: [f32; 3] = [0.0, -1.0, 0.0];
+    pub const CONE: [f32; 2] = [30.0, 45.0];
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ParticleBlend {
+    #[default]
+    Alpha,
+    Add,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Particles {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<Id>,
+    pub name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parent: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub at: Option<[f32; 3]>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rate: Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rate_keys: Option<Vec<[f32; 2]>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub burst: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lifetime: Option<[f32; 2]>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub speed: Option<[f32; 2]>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub direction: Option<[f32; 3]>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cone: Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub inherit: Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub gravity: Option<[f32; 3]>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub drag: Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub size: Option<[f32; 2]>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub alpha: Option<Vec<[f32; 2]>>,
+    #[serde(default, alias = "colour", skip_serializing_if = "Option::is_none")]
+    pub color: Option<Color>,
+    #[serde(default, alias = "colours", skip_serializing_if = "Option::is_none")]
+    pub colors: Option<Vec<(f32, Color)>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub spin: Option<[f32; 2]>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stretch: Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub blend: Option<ParticleBlend>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lit: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub seed: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub authoring: Option<toml::Value>,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Flare {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub amount: Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ghosts: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ghost_spacing: Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub halo: Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub halo_radius: Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub starburst: Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub threshold: Option<f32>,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct MotionBlur {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub shutter: Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_px: Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub samples: Option<u32>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -318,8 +431,10 @@ impl Sun {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Haze {
-    pub lo: [f32; 3],
-    pub hi: [f32; 3],
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lo: Option<[f32; 3]>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hi: Option<[f32; 3]>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub amount: Option<f32>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -344,6 +459,22 @@ pub struct Haze {
     pub unmapped: Option<f32>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub seed: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub height: Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub falloff: Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub shafts: Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub steps: Option<u32>,
+    #[serde(default, alias = "colour", skip_serializing_if = "Option::is_none")]
+    pub color: Option<Color>,
+}
+
+impl Haze {
+    pub fn outdoor(&self) -> bool {
+        self.height.is_some() || self.falloff.is_some()
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -383,6 +514,8 @@ pub struct Camera {
     pub fstop: Option<f32>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub focus: Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub focus_keys: Option<Vec<[f32; 2]>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub preset: Option<Preset>,
 }
@@ -1006,4 +1139,97 @@ pub struct Proxy {
     pub triangles: Option<Vec<[u32; 3]>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub authoring: Option<toml::Value>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Sounds {
+    pub file: Option<String>,
+    pub table: BTreeMap<String, Sound>,
+}
+
+impl Sounds {
+    pub fn is_empty(&self) -> bool {
+        self.file.is_none() && self.table.is_empty()
+    }
+}
+
+impl std::ops::Deref for Sounds {
+    type Target = BTreeMap<String, Sound>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.table
+    }
+}
+
+impl std::ops::DerefMut for Sounds {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.table
+    }
+}
+
+impl From<BTreeMap<String, Sound>> for Sounds {
+    fn from(table: BTreeMap<String, Sound>) -> Self {
+        Self { file: None, table }
+    }
+}
+
+impl FromIterator<(String, Sound)> for Sounds {
+    fn from_iter<I: IntoIterator<Item = (String, Sound)>>(items: I) -> Self {
+        Self::from(items.into_iter().collect::<BTreeMap<_, _>>())
+    }
+}
+
+impl IntoIterator for Sounds {
+    type Item = (String, Sound);
+    type IntoIter = std::collections::btree_map::IntoIter<String, Sound>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.table.into_iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a Sounds {
+    type Item = (&'a String, &'a Sound);
+    type IntoIter = std::collections::btree_map::Iter<'a, String, Sound>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.table.iter()
+    }
+}
+
+impl Serialize for Sounds {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        match &self.file {
+            Some(file) => serializer.serialize_str(file),
+            None => self.table.serialize(serializer),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for Sounds {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        struct Pick;
+
+        impl<'de> serde::de::Visitor<'de> for Pick {
+            type Value = Sounds;
+
+            fn expecting(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                f.write_str("a path to a sound file or a table of sounds")
+            }
+
+            fn visit_str<E: serde::de::Error>(self, value: &str) -> Result<Sounds, E> {
+                Ok(Sounds {
+                    file: Some(value.to_string()),
+                    table: BTreeMap::new(),
+                })
+            }
+
+            fn visit_map<A: serde::de::MapAccess<'de>>(self, map: A) -> Result<Sounds, A::Error> {
+                BTreeMap::deserialize(serde::de::value::MapAccessDeserializer::new(map))
+                    .map(Sounds::from)
+            }
+        }
+
+        deserializer.deserialize_any(Pick)
+    }
 }

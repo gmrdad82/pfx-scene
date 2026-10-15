@@ -144,11 +144,14 @@ pub enum Target {
     Sound(String),
     Rig(String),
     Tiles(String),
+    Particles(String),
     Sun,
     Sky,
     Haze,
     Camera,
     Finish,
+    Flare,
+    MotionBlur,
     Trace,
     Plates,
     Physics,
@@ -170,11 +173,14 @@ impl fmt::Display for Target {
             Target::Sound(name) => write!(f, "sound {name}"),
             Target::Rig(name) => write!(f, "rig {name}"),
             Target::Tiles(name) => write!(f, "tile layer {name}"),
+            Target::Particles(name) => write!(f, "particle system {name}"),
             Target::Sun => write!(f, "sun"),
             Target::Sky => write!(f, "sky"),
             Target::Haze => write!(f, "haze"),
             Target::Camera => write!(f, "camera"),
             Target::Finish => write!(f, "finish"),
+            Target::Flare => write!(f, "flare"),
+            Target::MotionBlur => write!(f, "motion blur"),
             Target::Trace => write!(f, "trace"),
             Target::Plates => write!(f, "plates"),
             Target::Physics => write!(f, "physics"),
@@ -195,6 +201,7 @@ pub enum Kind {
     Sound,
     Rig,
     Tiles,
+    Particles,
 }
 
 const ORDER_OBJECT: &[&str] = &[
@@ -227,7 +234,12 @@ const ORDER_OBJECT: &[&str] = &[
 const ORDER_LIGHT: &[&str] = &[
     "id",
     "name",
+    "kind",
     "position",
+    "parent",
+    "at",
+    "direction",
+    "cone",
     "color",
     "intensity",
     "radius",
@@ -293,6 +305,33 @@ const ORDER_TILES: &[&str] = &[
     "cells",
     "authoring",
 ];
+const ORDER_PARTICLES: &[&str] = &[
+    "id",
+    "name",
+    "parent",
+    "at",
+    "rate",
+    "rate_keys",
+    "burst",
+    "max",
+    "lifetime",
+    "speed",
+    "direction",
+    "cone",
+    "inherit",
+    "gravity",
+    "drag",
+    "size",
+    "alpha",
+    "color",
+    "colors",
+    "spin",
+    "stretch",
+    "blend",
+    "lit",
+    "seed",
+    "authoring",
+];
 const ORDER_RIG: &[&str] = &[
     "id",
     "name",
@@ -342,6 +381,7 @@ const ORDER_MATERIAL: &[&str] = &[
     "content_layer",
     "layers",
     "ageing",
+    "wet",
     "authoring",
 ];
 
@@ -360,6 +400,7 @@ impl Kind {
             Kind::Sound => Target::Sound(name),
             Kind::Rig => Target::Rig(name),
             Kind::Tiles => Target::Tiles(name),
+            Kind::Particles => Target::Particles(name),
         }
     }
 
@@ -371,6 +412,7 @@ impl Kind {
             Kind::Mover => Some("mover"),
             Kind::Rig => Some("rig"),
             Kind::Tiles => Some("tiles"),
+            Kind::Particles => Some("particles"),
             _ => None,
         }
     }
@@ -399,6 +441,7 @@ impl Kind {
             Kind::Sound => ORDER_SOUND,
             Kind::Rig => ORDER_RIG,
             Kind::Tiles => ORDER_TILES,
+            Kind::Particles => ORDER_PARTICLES,
         }
     }
 }
@@ -1077,6 +1120,7 @@ fn path_of(doc: &DocumentMut, target: &Target) -> Option<Vec<String>> {
         Target::Mover(name) => list("mover", name),
         Target::Rig(name) => list("rig", name),
         Target::Tiles(name) => list("tiles", name),
+        Target::Particles(name) => list("particles", name),
         Target::Mesh(name) => map("mesh", name),
         Target::Content(name) => map("content", name),
         Target::Text(name) => map("text", name),
@@ -1092,6 +1136,8 @@ fn path_of(doc: &DocumentMut, target: &Target) -> Option<Vec<String>> {
         Target::Haze => section("haze"),
         Target::Camera => section("camera"),
         Target::Finish => section("finish"),
+        Target::Flare => section("flare"),
+        Target::MotionBlur => section("motion_blur"),
         Target::Trace => section("trace"),
         Target::Plates => section("plates"),
         Target::Physics => section("physics"),
@@ -1105,6 +1151,8 @@ fn section_key(target: &Target) -> Option<&'static str> {
         Target::Haze => Some("haze"),
         Target::Camera => Some("camera"),
         Target::Finish => Some("finish"),
+        Target::Flare => Some("flare"),
+        Target::MotionBlur => Some("motion_blur"),
         Target::Trace => Some("trace"),
         Target::Plates => Some("plates"),
         Target::Physics => Some("physics"),
@@ -1243,7 +1291,8 @@ fn reference_of(target: &Target) -> Option<&str> {
         | Target::Text(name)
         | Target::Sound(name)
         | Target::Rig(name)
-        | Target::Tiles(name) => Some(name),
+        | Target::Tiles(name)
+        | Target::Particles(name) => Some(name),
         Target::Node { mesh, .. } => Some(mesh),
         _ => None,
     }

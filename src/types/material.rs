@@ -155,6 +155,19 @@ pub struct Ageing {
     pub seed: u32,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Wet {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub amount: Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub puddles: Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub puddle_scale: Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub seed: Option<u64>,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct ContentLayer {
@@ -210,6 +223,8 @@ pub struct Material {
     pub layers: Vec<NoiseLayer>,
     pub ageing: Ageing,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub wet: Option<Wet>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub authoring: Option<toml::Value>,
 }
 
@@ -243,6 +258,7 @@ impl Default for Material {
             content_layer: ContentLayer::default(),
             layers: Vec::new(),
             ageing: Ageing::default(),
+            wet: None,
             authoring: None,
         }
     }

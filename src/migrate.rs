@@ -21,7 +21,15 @@ pub(crate) struct Migration {
     pub(crate) problems: Vec<Problem>,
 }
 
-const LISTS: &[&str] = &["object", "light", "emitter", "mover", "rig", "tiles"];
+const LISTS: &[&str] = &[
+    "object",
+    "light",
+    "emitter",
+    "mover",
+    "rig",
+    "tiles",
+    "particles",
+];
 const MAPS: &[&str] = &["mesh", "content", "text", "sound"];
 
 pub(crate) fn entry_kinds(kind: FileKind) -> (&'static [&'static str], &'static [&'static str]) {
@@ -226,7 +234,19 @@ fn path_keys(doc: &DocumentMut) -> Vec<PathValue> {
             }
         }
     }
+    push(vec!["sound"]);
     push(vec!["finish", "file"]);
+    push(vec!["finish", "lut"]);
+    if let Some(passes) = doc.get("finish").and_then(|finish| finish.get("pass")) {
+        let count = match passes {
+            Item::ArrayOfTables(array) => array.len(),
+            Item::Value(Value::Array(array)) => array.len(),
+            _ => 0,
+        };
+        for place in 0..count {
+            push(vec!["finish", "pass", &place.to_string(), "lut"]);
+        }
+    }
     push(vec!["plates", "dir"]);
     push(vec!["plates", "proxies"]);
     out

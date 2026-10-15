@@ -241,12 +241,21 @@ pub struct Lut {
 }
 
 impl Lut {
-    pub const SIZES: std::ops::RangeInclusive<u32> = 2..=32;
+    pub const SIZES: std::ops::RangeInclusive<u32> = 2..=64;
 
     pub fn needs(&self) -> usize {
         (self.size as usize).pow(3) * 3
     }
 }
+
+#[derive(Clone, Debug, PartialEq, Serialize)]
+#[serde(untagged)]
+pub enum LutKey {
+    Path(String),
+    Table(Lut),
+}
+
+either!(LutKey, "a path to a .cube file or a table", text => Path(String), map => Table(Lut),);
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -418,7 +427,8 @@ finish! {
     keep_range: f32,
     levels: f32,
     line_weight: f32,
-    lut: Lut,
+    lut: LutKey,
+    lut_amount: f32,
     mask: f32,
     outline: Outline,
     outline_alpha: f32,

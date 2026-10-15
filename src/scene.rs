@@ -3,8 +3,8 @@ use std::path::PathBuf;
 
 use crate::Diagnostic;
 use crate::types::{
-    Camera, Content, Emitter, Finish, FinishKeys, Haze, Light, Material, Mesh, Mover, Object,
-    Physics, Plates, Proxy, Rig, Sky, Sound, Sun, Text, Tiles, Trace,
+    Camera, Content, Emitter, Finish, FinishKeys, Flare, Haze, Light, Material, Mesh, MotionBlur,
+    Mover, Object, Particles, Physics, Plates, Proxy, Rig, Sky, Sound, Sun, Text, Tiles, Trace,
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -29,14 +29,18 @@ pub struct Scene {
     pub contents: Vec<Entry<Content>>,
     pub texts: Vec<Entry<Text>>,
     pub sounds: Vec<Entry<Sound>>,
+    pub sound_file: Option<PathBuf>,
     pub rigs: Vec<Entry<Rig>>,
     pub tiles: Vec<Entry<Tiles>>,
+    pub particles: Vec<Entry<Particles>>,
     pub sun: Option<Sun>,
     pub sky: Option<Sky>,
     pub haze: Option<Haze>,
     pub camera: Option<Camera>,
     pub finish: Option<Finish>,
     pub finish_file: Option<FinishKeys>,
+    pub flare: Option<Flare>,
+    pub motion_blur: Option<MotionBlur>,
     pub trace: Option<Trace>,
     pub plates: Option<Plates>,
     pub proxies: Vec<Entry<Proxy>>,
@@ -88,6 +92,10 @@ impl Scene {
 
     pub fn rig(&self, key: &str) -> Option<&Entry<Rig>> {
         find(&self.rigs, key)
+    }
+
+    pub fn particles(&self, key: &str) -> Option<&Entry<Particles>> {
+        find(&self.particles, key)
     }
 
     pub fn tile_layer(&self, key: &str) -> Option<&Entry<Tiles>> {
