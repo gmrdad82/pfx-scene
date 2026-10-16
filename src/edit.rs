@@ -780,7 +780,19 @@ impl Tree {
         let text = match overlay.get(path) {
             Some(text) => text.clone(),
             None => root.source(path).map_err(|error| {
-                Refusal::new(path, format!("cannot read {}: {error}", path.display()))
+                if error.kind() == std::io::ErrorKind::NotFound {
+                    Refusal {
+                        file: path.to_path_buf(),
+                        code: crate::code::MISSING_FILE,
+                        message: format!(
+                            "the {} {} is not found",
+                            kind.name(),
+                            crate::paths::slashed(path)
+                        ),
+                    }
+                } else {
+                    Refusal::new(path, format!("cannot read {}: {error}", path.display()))
+                }
             })?,
         };
         let doc: DocumentMut = text
