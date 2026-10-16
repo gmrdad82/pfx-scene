@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::either::{Color, either};
+use super::keys::{Key, KeyShape, Keys};
 
 pub const STYLES: &[&str] = &[
     "cel",
@@ -370,6 +371,8 @@ macro_rules! finish {
             )*
             #[serde(default, skip_serializing_if = "Vec::is_empty")]
             pub pass: Vec<FinishKeys>,
+            #[serde(default, skip_serializing_if = "Option::is_none")]
+            pub keys: Option<Keys>,
         }
 
         impl Finish {
@@ -460,6 +463,17 @@ finish! {
     warmth: Warmth,
     weave: f32,
     weights: [f32; 3],
+}
+
+impl Finish {
+    pub const KEYED: &[(&str, KeyShape)] = &[
+        ("exposure", KeyShape::Number),
+        ("lut_amount", KeyShape::Number),
+    ];
+
+    pub fn track(&self, name: &str) -> Option<Vec<Key>> {
+        self.keys.as_ref()?.get(name).map(<[Key]>::to_vec)
+    }
 }
 
 impl FinishKeys {

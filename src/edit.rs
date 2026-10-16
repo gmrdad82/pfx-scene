@@ -246,6 +246,7 @@ const ORDER_LIGHT: &[&str] = &[
     "radius",
     "range",
     "shadow",
+    "keys",
     "authoring",
 ];
 const ORDER_EMITTER: &[&str] = &[
@@ -332,6 +333,7 @@ const ORDER_PARTICLES: &[&str] = &[
     "blend",
     "lit",
     "seed",
+    "keys",
     "authoring",
 ];
 const ORDER_RIG: &[&str] = &[
@@ -847,7 +849,10 @@ impl<'a> Container<'a> {
     fn child(self, segment: &str, create: Option<&str>) -> Option<Container<'a>> {
         match self {
             Container::Table(table) => {
-                if !table.contains_key(segment) {
+                if !table.contains_key(segment) && segment == "keys" {
+                    create?;
+                    table.insert(segment, Item::Value(Toml::InlineTable(InlineTable::new())));
+                } else if !table.contains_key(segment) {
                     let prefix = create?;
                     let mut made = Table::new();
                     made.set_implicit(true);

@@ -1,5 +1,6 @@
 mod either;
 mod finish;
+mod keys;
 mod material;
 mod scene;
 mod sky;
@@ -16,6 +17,7 @@ pub use finish::{
     TapeDirection, TapeTable, Tone, ToneKind, ToneTable, Vignette, VignetteKind, VignetteTable,
     Warmth, WarmthKind, WarmthTable,
 };
+pub use keys::{Key, KeyShape, KeyValue, Keys, sample};
 pub use material::{
     Ageing, Anisotropy, Blend, Content as ContentKind, ContentLayer, Fabric, Family, LAYER_CAP,
     Maps, Material, NoiseKind, NoiseLayer, Normal, NormalSource, PARAMS, Scatter, Wet,

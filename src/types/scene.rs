@@ -3,6 +3,7 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 
 use super::either::{Color, either};
+use super::keys::{Key, KeyShape, Keys, numbers};
 use super::{is_false, is_zero3};
 use crate::Id;
 
@@ -164,10 +165,23 @@ pub struct Light {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub shadow: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub keys: Option<Keys>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub authoring: Option<toml::Value>,
 }
 
 impl Light {
+    pub const KEYED: &[(&str, KeyShape)] = &[
+        ("intensity", KeyShape::Number),
+        ("color", KeyShape::Triple),
+        ("range", KeyShape::Number),
+        ("cone", KeyShape::Pair),
+    ];
+
+    pub fn track(&self, name: &str) -> Option<Vec<Key>> {
+        self.keys.as_ref()?.get(name).map(<[Key]>::to_vec)
+    }
+
     pub const COLOR: [f32; 3] = [1.0; 3];
     pub const RADIUS: f32 = 0.0;
     pub const RANGE: f32 = 10.0;
@@ -237,7 +251,27 @@ pub struct Particles {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub seed: Option<u64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub keys: Option<Keys>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub authoring: Option<toml::Value>,
+}
+
+impl Particles {
+    pub const KEYED: &[(&str, KeyShape)] = &[
+        ("rate", KeyShape::Number),
+        ("speed", KeyShape::Pair),
+        ("size", KeyShape::Pair),
+        ("color", KeyShape::Triple),
+        ("alpha", KeyShape::Number),
+    ];
+
+    pub fn track(&self, name: &str) -> Option<Vec<Key>> {
+        match self.keys.as_ref().and_then(|keys| keys.get(name)) {
+            Some(track) => Some(track.to_vec()),
+            None if name == "rate" => self.rate_keys.as_deref().map(numbers),
+            None => None,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -423,9 +457,17 @@ pub struct Sun {
     pub irradiance: Option<f32>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub radius: Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub keys: Option<Keys>,
 }
 
 impl Sun {
+    pub const KEYED: &[(&str, KeyShape)] = &[("hour", KeyShape::Number)];
+
+    pub fn track(&self, name: &str) -> Option<Vec<Key>> {
+        self.keys.as_ref()?.get(name).map(<[Key]>::to_vec)
+    }
+
     pub const REFERENCE_HOUR: f64 = 12.0;
     pub const DAY: f64 = 172.0;
     pub const LATITUDE: f64 = 45.0;
@@ -473,9 +515,18 @@ pub struct Haze {
     pub steps: Option<u32>,
     #[serde(default, alias = "colour", skip_serializing_if = "Option::is_none")]
     pub color: Option<Color>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub keys: Option<Keys>,
 }
 
 impl Haze {
+    pub const KEYED: &[(&str, KeyShape)] =
+        &[("amount", KeyShape::Number), ("color", KeyShape::Triple)];
+
+    pub fn track(&self, name: &str) -> Option<Vec<Key>> {
+        self.keys.as_ref()?.get(name).map(<[Key]>::to_vec)
+    }
+
     pub fn outdoor(&self) -> bool {
         self.height.is_some() || self.falloff.is_some()
     }
@@ -522,9 +573,25 @@ pub struct Camera {
     pub focus_keys: Option<Vec<[f32; 2]>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub preset: Option<Preset>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub keys: Option<Keys>,
 }
 
 impl Camera {
+    pub const KEYED: &[(&str, KeyShape)] = &[
+        ("fov", KeyShape::Number),
+        ("fstop", KeyShape::Number),
+        ("focus", KeyShape::Number),
+    ];
+
+    pub fn track(&self, name: &str) -> Option<Vec<Key>> {
+        match self.keys.as_ref().and_then(|keys| keys.get(name)) {
+            Some(track) => Some(track.to_vec()),
+            None if name == "focus" => self.focus_keys.as_deref().map(numbers),
+            None => None,
+        }
+    }
+
     pub const AT: [f32; 3] = [0.0, 0.0, 5.0];
     pub const LOOK_AT: [f32; 3] = [0.0; 3];
     pub const UP: [f32; 3] = [0.0, 1.0, 0.0];

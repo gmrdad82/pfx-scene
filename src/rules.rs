@@ -3,11 +3,11 @@ use std::collections::BTreeMap;
 
 use crate::types::{
     Animation, BlendClip, Body, BodyShape, Camera, Casters, Character, CharacterKind, Color,
-    Emitter, Finish, FinishKeys, Flare, Haze, Ink, LAYER_CAP, LAYER_COUNT, Light, LightKind, Lut,
-    LutKey, Material, MotionBlur, Mover, MoverKind, Object, Particles, Physics, Plates, Preset,
-    Projection, Proxy, ProxyKind, Rig, RigKind, Room, Scratches, Sky, SkyKind, Sound, Sun,
-    SunModel, Tape, Text, Tiles, Tone, ToneKind, Trace, Trigger, Tunable, TunableKind,
-    TunableValue,
+    Emitter, Finish, FinishKeys, Flare, Haze, Ink, KeyShape, KeyValue, Keys, LAYER_CAP,
+    LAYER_COUNT, Light, LightKind, Lut, LutKey, Material, MotionBlur, Mover, MoverKind, Object,
+    Particles, Physics, Plates, Preset, Projection, Proxy, ProxyKind, Rig, RigKind, Room,
+    Scratches, Sky, SkyKind, Sound, Sun, SunModel, Tape, Text, Tiles, Tone, ToneKind, Trace,
+    Trigger, Tunable, TunableKind, TunableValue,
 };
 
 pub(crate) struct Issue {
@@ -1028,13 +1028,130 @@ fn node(
     }
 }
 
+fn unit_of(value: f32) -> Option<&'static str> {
+    (!(0.0..=1.0).contains(&value)).then_some("are 0 to 1")
+}
+
+fn at_least_zero(value: f32) -> Option<&'static str> {
+    (!nonnegative(&[value])).then_some("are at least 0")
+}
+
+fn above_zero(value: f32) -> Option<&'static str> {
+    (!positive(value)).then_some("are above 0")
+}
+
+fn shown(value: &KeyValue) -> String {
+    match value {
+        KeyValue::Number(value) => value.to_string(),
+        KeyValue::Pair(value) => format!("{value:?}"),
+        KeyValue::Triple(value) => format!("{value:?}"),
+    }
+}
+
+fn keys(
+    issues: &mut Issues,
+    what: &str,
+    keys: &Option<Keys>,
+    keyed: &[(&str, KeyShape)],
+    check: impl Fn(&str, &KeyValue) -> Option<&'static str>,
+) {
+    let Some(keys) = keys else { return };
+    let names = keyed
+        .iter()
+        .map(|(name, _)| *name)
+        .collect::<Vec<_>>()
+        .join(", ");
+    for (name, track) in &keys.0 {
+        let Some((_, shape)) = keyed.iter().find(|(known, _)| known == name) else {
+            issues.at(
+                &["keys", name],
+                format!("{what}: keys.{name} names no keyable key; it keys {names}"),
+            );
+            continue;
+        };
+        if track.is_empty() {
+            issues.at(
+                &["keys", name],
+                format!("{what}: keys.{name} holds [seconds, value] keys, at least one"),
+            );
+        }
+        let mut last: Option<f32> = None;
+        for (place, (seconds, value)) in track.iter().enumerate() {
+            let place = place.to_string();
+            if !(seconds.is_finite() && *seconds >= 0.0) {
+                issues.at(
+                    &["keys", name, &place, "0"],
+                    format!("{what}: keys.{name} times are seconds of at least 0, not {seconds}"),
+                );
+            } else if let Some(before) = last
+                && *seconds <= before
+            {
+                issues.at(
+                    &["keys", name, &place, "0"],
+                    format!("{what}: keys.{name} times rise strictly; {seconds} follows {before}"),
+                );
+            }
+            last = Some(*seconds);
+            if value.shape() != *shape {
+                issues.at(
+                    &["keys", name, &place, "1"],
+                    format!(
+                        "{what}: keys.{name} values are {}, not {}",
+                        shape.describe(),
+                        shown(value)
+                    ),
+                );
+            } else if !finite(value.parts()) {
+                issues.at(
+                    &["keys", name, &place, "1"],
+                    format!(
+                        "{what}: keys.{name} values are finite numbers, not {}",
+                        shown(value)
+                    ),
+                );
+            } else if let Some(wrong) = check(name, value) {
+                issues.at(
+                    &["keys", name, &place, "1"],
+                    format!("{what}: keys.{name} values {wrong}, not {}", shown(value)),
+                );
+            }
+        }
+    }
+}
+
+fn keyed(keys: &Option<Keys>, name: &str) -> bool {
+    keys.as_ref().is_some_and(|keys| keys.has(name))
+}
+
+fn cone_of([inner, outer]: [f32; 2]) -> Option<&'static str> {
+    (!(0.0 <= inner && inner <= outer && outer <= 180.0))
+        .then_some("are [inner, outer] degrees, 0 <= inner <= outer <= 180")
+}
+
+fn span_of([low, high]: [f32; 2]) -> Option<&'static str> {
+    (!(nonnegative(&[low, high]) && low <= high))
+        .then_some("are [low, high], both at least 0 and low at most high")
+}
+
+fn light_key(name: &str, value: &KeyValue) -> Option<&'static str> {
+    match (name, value) {
+        ("intensity", KeyValue::Number(value)) => at_least_zero(*value),
+        ("range", KeyValue::Number(value)) => above_zero(*value),
+        ("color", KeyValue::Triple(value)) => {
+            (!nonnegative(value)).then_some("are three numbers of at least 0")
+        }
+        ("cone", KeyValue::Pair(value)) => cone_of(*value),
+        _ => None,
+    }
+}
+
 pub(crate) fn light(light: &Light) -> Issues {
     let mut issues = Issues::default();
     let name = &light.name;
     if light.kind.unwrap_or_default() == LightKind::Point {
         for (key, present) in [
             ("direction", light.direction.is_some()),
-            ("cone", light.cone.is_some()),
+            ("cone", light.cone.is_some() || keyed(&light.keys, "cone")),
         ] {
             if present {
                 issues.at(
@@ -1058,6 +1175,13 @@ pub(crate) fn light(light: &Light) -> Issues {
         );
     }
     node(&mut issues, "light", name, &light.parent, &light.node);
+    keys(
+        &mut issues,
+        &format!("light {name}"),
+        &light.keys,
+        Light::KEYED,
+        light_key,
+    );
     if light.parent.is_none() && light.at.is_some() {
         issues.at(
             &["at"],
@@ -1200,6 +1324,27 @@ pub(crate) fn particles(particles: &Particles) -> Issues {
             );
         }
     }
+    if particles.rate_keys.is_some() && keyed(&particles.keys, "rate") {
+        issues.at(
+            &["rate_keys"],
+            format!("particle system {name}: rate_keys and keys.rate are one track; write one"),
+        );
+    }
+    keys(
+        &mut issues,
+        &format!("particle system {name}"),
+        &particles.keys,
+        Particles::KEYED,
+        |key, value| match (key, value) {
+            ("rate", KeyValue::Number(value)) => at_least_zero(*value),
+            ("alpha", KeyValue::Number(value)) => unit_of(*value),
+            ("speed", KeyValue::Pair(value)) => span_of(*value),
+            ("size", KeyValue::Pair(value)) => {
+                (!nonnegative(value)).then_some("are two numbers of at least 0")
+            }
+            _ => None,
+        },
+    );
     if particles.max == Some(0) {
         issues.at(
             &["max"],
@@ -1327,6 +1472,16 @@ pub(crate) fn haze(haze: &Haze) -> Issues {
         issues.at(&["steps"], "haze steps is at least 1");
     }
     color(&mut issues, "color", &haze.color);
+    keys(
+        &mut issues,
+        "haze",
+        &haze.keys,
+        Haze::KEYED,
+        |key, value| match (key, value) {
+            ("amount", KeyValue::Number(value)) => unit_of(*value),
+            _ => None,
+        },
+    );
     let amount = haze.amount.unwrap_or(0.0);
     if !(0.0..=1.0).contains(&amount) {
         issues.at(
@@ -1392,6 +1547,18 @@ pub(crate) fn sun(sun: &Sun) -> Issues {
             format!("sun radius = {radius} is outside 0 to 10"),
         );
     }
+    keys(
+        &mut issues,
+        "sun",
+        &sun.keys,
+        Sun::KEYED,
+        |key, value| match (key, value) {
+            ("hour", KeyValue::Number(value)) => {
+                (!(0.0..=24.0).contains(value)).then_some("are 0 to 24")
+            }
+            _ => None,
+        },
+    );
     let reference = sun.reference_hour.unwrap_or(Sun::REFERENCE_HOUR);
     if !(0.0..=24.0).contains(&reference) {
         issues.at(
@@ -1474,9 +1641,8 @@ fn one_sky(issues: &mut Issues, sky: &Sky) {
                 || sky.prepare.is_some()
                 || sky.room.is_some()
                 || sky.rotation_deg.is_some()
-                || sky.intensity.is_some()
             {
-                issues.at(&["kind"], "an analytic sky takes turbidity, ground_albedo and ambient; it follows the sun");
+                issues.at(&["kind"], "an analytic sky takes turbidity, ground_albedo, ambient and intensity; it follows the sun");
             }
             let turbidity = sky.turbidity.unwrap_or(Sky::TURBIDITY);
             if !(1.0..=10.0).contains(&turbidity)
@@ -1536,8 +1702,51 @@ fn one_sky(issues: &mut Issues, sky: &Sky) {
     }
 }
 
+fn sky_key(name: &str, value: &KeyValue) -> Option<&'static str> {
+    match (name, value) {
+        ("intensity", KeyValue::Number(value)) => at_least_zero(*value),
+        ("backdrop", KeyValue::Number(value)) => above_zero(*value),
+        ("horizon_amount", KeyValue::Number(value)) => unit_of(*value),
+        ("horizon_width", KeyValue::Number(value)) => {
+            (!(*value > 0.0 && *value <= 90.0)).then_some("are degrees above 0, at most 90")
+        }
+        ("horizon_color", KeyValue::Triple(value)) => {
+            (!nonnegative(value)).then_some("are three numbers of at least 0")
+        }
+        _ => None,
+    }
+}
+
+fn seen(sky: &Sky) -> [(&'static str, Option<KeyValue>); 4] {
+    [
+        ("backdrop", sky.backdrop.map(KeyValue::Number)),
+        ("horizon_color", sky.horizon_color.map(KeyValue::Triple)),
+        ("horizon_width", sky.horizon_width.map(KeyValue::Number)),
+        ("horizon_amount", sky.horizon_amount.map(KeyValue::Number)),
+    ]
+}
+
 pub(crate) fn sky(sky: &Sky) -> Issues {
     let mut issues = Issues::default();
+    for (key, value) in seen(sky) {
+        if let Some(value) = value
+            && let Some(wrong) = sky_key(key, &value)
+                .or_else(|| (!finite(value.parts())).then_some("are finite numbers"))
+        {
+            let wrong = wrong.strip_prefix("are ").unwrap_or(wrong);
+            issues.at(
+                &[key],
+                format!("sky {key} is {wrong}, not {}", shown(&value)),
+            );
+        }
+    }
+    if sky.kind == SkyKind::Mix && keyed(&sky.keys, "intensity") {
+        issues.at(
+            &["keys", "intensity"],
+            "a mix sky keys intensity on its [[sky.layer]]",
+        );
+    }
+    keys(&mut issues, "sky", &sky.keys, Sky::KEYED, sky_key);
     if sky.weight.is_some() {
         issues.at(
             &["weight"],
@@ -1572,6 +1781,17 @@ pub(crate) fn sky(sky: &Sky) -> Issues {
         } else {
             one_sky(&mut inner, layer);
         }
+        for (key, value) in seen(layer) {
+            if value.is_some() || keyed(&layer.keys, key) {
+                let at = if value.is_some() {
+                    vec![key]
+                } else {
+                    vec!["keys", key]
+                };
+                inner.at(&at, format!("{key} belongs to [sky], not a [[sky.layer]]"));
+            }
+        }
+        keys(&mut inner, "sky layer", &layer.keys, Sky::KEYED, sky_key);
         let weight = layer.weight.unwrap_or(Sky::WEIGHT);
         if !nonnegative(&[weight]) {
             inner.at(
@@ -1625,8 +1845,11 @@ pub(crate) fn camera(camera: &Camera) -> Issues {
                 || camera.fstop.is_some()
                 || camera.focus.is_some()
                 || camera.focus_keys.is_some()
+                || ["fov", "fstop", "focus"]
+                    .iter()
+                    .any(|key| keyed(&camera.keys, key))
             {
-                issues.at(&["projection"], "an orthographic camera takes height and shift, not fov, focal, sensor, fstop, focus or focus_keys");
+                issues.at(&["projection"], "an orthographic camera takes height and shift, not fov, focal, sensor, fstop, focus or focus_keys, nor their keys");
             }
             if !camera.height.is_some_and(positive) {
                 issues.at(&[], "an orthographic camera needs a positive height");
@@ -1639,8 +1862,36 @@ pub(crate) fn camera(camera: &Camera) -> Issues {
     let at = camera.at.unwrap_or(Camera::AT);
     let look_at = camera.look_at.unwrap_or(Camera::LOOK_AT);
     let up = camera.up.unwrap_or(Camera::UP);
+    let fstop = camera.fstop.is_some() || keyed(&camera.keys, "fstop");
+    if keyed(&camera.keys, "fov") && camera.focal.is_some() {
+        issues.at(&["keys", "fov"], "a camera keys fov with fov, not focal");
+    }
+    if keyed(&camera.keys, "focus") {
+        if camera.focus_keys.is_some() {
+            issues.at(
+                &["focus_keys"],
+                "camera focus_keys and keys.focus are one track; write one",
+            );
+        }
+        if !fstop {
+            issues.at(&["keys", "focus"], "camera keys.focus needs fstop");
+        }
+    }
+    keys(
+        &mut issues,
+        "camera",
+        &camera.keys,
+        Camera::KEYED,
+        |key, value| match (key, value) {
+            ("fov", KeyValue::Number(value)) => {
+                (!(*value > 0.0 && *value < 180.0)).then_some("are above 0 and below 180")
+            }
+            ("fstop" | "focus", KeyValue::Number(value)) => above_zero(*value),
+            _ => None,
+        },
+    );
     if let Some(keys) = &camera.focus_keys {
-        if camera.fstop.is_none() {
+        if !fstop {
             issues.at(&["focus_keys"], "camera focus_keys needs fstop");
         }
         let fine = keys
@@ -1656,7 +1907,8 @@ pub(crate) fn camera(camera: &Camera) -> Issues {
     }
     if camera.projection.unwrap_or_default() == Projection::Perspective {
         match (camera.fstop, camera.focus) {
-            (None, Some(_)) => issues.at(&["focus"], "camera focus needs fstop"),
+            (None, Some(_)) if !fstop => issues.at(&["focus"], "camera focus needs fstop"),
+            (None, _) => {}
             (Some(fstop), focus) => {
                 let distance =
                     focus.unwrap_or_else(|| dot(sub(look_at, at), sub(look_at, at)).sqrt());
@@ -1672,7 +1924,6 @@ pub(crate) fn camera(camera: &Camera) -> Issues {
                     );
                 }
             }
-            (None, None) => {}
         }
     }
     let forward = sub(look_at, at);
@@ -2031,6 +2282,16 @@ pub(crate) fn finish(finish: &Finish) -> Issues {
         );
     }
     issues.0.extend(finish_keys(&keys).0);
+    self::keys(
+        &mut issues,
+        "finish",
+        &finish.keys,
+        Finish::KEYED,
+        |key, value| match (key, value) {
+            ("lut_amount", KeyValue::Number(value)) => unit_of(*value),
+            _ => None,
+        },
+    );
     for (place, pass) in finish.pass.iter().enumerate() {
         let at = ["pass".to_string(), place.to_string()];
         let mut inner = Issues::default();

@@ -104,6 +104,35 @@ parent = "desk"
 
 Colours are linear RGB under `color`. Angles are degrees. Lengths are scene units (metres by convention), speeds scene units per second, and times seconds, except where a key counts ticks of the play clock (`[physics] rate`) or a sprite's frames (`fps`, frames per second). Y is up, and a right-handed scene looks down −Z. A model is `T·R·S`, with `rotate` about X, then Y, then Z.
 
+## Keys over time
+
+`[[light]]`, `[camera]`, `[[particles]]`, `[finish]`, `[haze]`, `[sun]` and `[sky]` (and each `[[sky.layer]]`) take an optional inline table `keys` that animates some of their keys over the scene's time:
+
+```toml
+[[light]]
+name = "lamp"
+position = [0.0, 2.0, 0.0]
+intensity = 2.0
+keys = { intensity = [[0.0, 2.0], [1.5, 8.0]], color = [[0.0, [1.0, 0.2, 0.1]], [1.5, [1.0, 0.9, 0.8]]] }
+```
+
+- Each entry of `keys` is named after a key of its table, the *keyed key*, and holds `[seconds, value]` keys: seconds of scene time, at least 0 and strictly rising, at least one key. The value has the keyed key's shape and range: a number, `[r, g, b]` for a colour (three numbers; `"#rrggbb"` is not taken here) or two numbers for a pair such as `cone`.
+- Between keys the value is linear in each component; before the first key it holds the first value, after the last the last. A keyed key overrides its static value.
+- The table refuses a name it does not key, a value of the wrong shape, a value outside the keyed key's range, and times that do not rise, each at its line and column (`bad-value`). A keyed key keeps its static key's conditions: a point light refuses keyed `cone`, an orthographic camera keyed `fov`, `fstop` and `focus`, and keyed `focus` needs `fstop` (static or keyed).
+
+| table | keys it keys |
+|---|---|
+| `[[light]]` | `intensity`, `color`, `range`, `cone` |
+| `[camera]` | `fov`, `fstop`, `focus` |
+| `[[particles]]` | `rate`, `speed`, `size`, `color`, `alpha` |
+| `[finish]` | `exposure`, `lut_amount` |
+| `[haze]` | `amount`, `color` |
+| `[sun]` | `hour` |
+| `[sky]` | `intensity`, `backdrop`, `horizon_color`, `horizon_width`, `horizon_amount` |
+| `[[sky.layer]]` | `intensity` |
+
+A particle system's keyed `alpha` is a number from 0 to 1 that scales its `alpha` curve over the scene's time (1 when unkeyed). `[camera] focus_keys` is another spelling of `keys.focus`, and `[[particles]] rate_keys` of `keys.rate`; a table writes one of the two. A mix sky keys `intensity` on its layers.
+
 ## Tables
 
 Each table below lists every key it takes. *Type* uses TOML terms: a *number* is an integer or a float, and `[x, y, z]` is an array of three numbers. Where a table gives a range, a number outside it (or not finite) is refused (`bad-value`). *Default* is the value when the key is left out; *needed* means the key must be there. A key whose default is described ("the object's") is resolved by the loader.
@@ -427,6 +456,7 @@ events = [{ name = "step", clip = "Walk", time = 0.4 }]
 | `radius` | number ≥ 0 | `0` | |
 | `range` | number > 0 | `10` | |
 | `shadow` | bool | `true` | |
+| `keys` | inline table | none | keyed values over time, see [Keys over time](#keys-over-time): `intensity`, `color`, `range`, `cone` (spot only). |
 | `authoring` | any | none | |
 
 ### `[[emitter]]`: a glowing sphere
@@ -510,7 +540,7 @@ Every key but `name` is optional; a key left out takes the renderer's default.
 | `node` | string | a glTF node inside the parent's mesh the system rides instead of the object itself; only with `parent`. The renderer refuses a node the mesh lacks. |
 | `at` | `[x, y, z]` | where particles are born: in the parent's frame (the node's, with `node`), or the scene's without a parent. |
 | `rate` | number ≥ 0 | particles born per second. |
-| `rate_keys` | array of `[seconds, rate]`, each ≥ 0, in time order | the rate over time, linear between keys; when present it drives the rate and `rate` is ignored. |
+| `rate_keys` | array of `[seconds, rate]`, each ≥ 0, in time order | the rate over time, linear between keys; when present it drives the rate and `rate` is ignored. Another spelling of `keys.rate`; not with it. |
 | `burst` | unsigned integer | particles born at once when the system starts. |
 | `max` | integer ≥ 1 | the most particles alive at once. |
 | `lifetime` | `[low, high]` seconds, low > 0 | each particle lives a time between the two. |
@@ -529,6 +559,7 @@ Every key but `name` is optional; a key left out takes the renderer's default.
 | `blend` | `"alpha"` or `"add"` | `"alpha"` by default. |
 | `lit` | bool | lit particles are shaded by the scene. |
 | `seed` | unsigned integer | |
+| `keys` | inline table | keyed values over time, see [Keys over time](#keys-over-time): `rate`, `speed`, `size`, `color` (`[r, g, b]`) and `alpha` (0 to 1, scaling the `alpha` curve). |
 | `authoring` | any | |
 
 A *colour* is `"#rrggbb"` (sRGB, read as linear) or `[r, g, b]`. `colour` and `colours` read as `color` and `colors`.
@@ -638,6 +669,7 @@ cells = [{ at = [0, 0], tile = "wall" }, { at = [-1, 2], tile = "wall" }]
 | `color` | `[r, g, b]`, each ≥ 0 | authored: `[1, 1, 1]` | Daylight refuses it. |
 | `irradiance` | number ≥ 0 | authored: needed | Daylight refuses it. |
 | `radius` | number, 0 to 10 | `0` | the sun's angular radius in degrees: a soft sun. |
+| `keys` | inline table | none | keyed values over time, see [Keys over time](#keys-over-time): `hour`. |
 
 An authored sun follows `hour`: at `hour = reference_hour` (the default) it is exactly as authored, and away from it the sun turns, lowers, warms and dims as the day does. Without `[sun]` the sun is dark.
 
@@ -648,15 +680,20 @@ An authored sun follows `hour`: at `hour = reference_hour` (the default) it is e
 | `kind` | `"analytic"`, `"hdr"`, `"room"` or `"mix"` | needed | |
 | `path` | path | hdr: needed | the Radiance `.hdr` file. hdr only. |
 | `rotation_deg` | number | `0` | hdr and room: turns the sky by its negative. |
-| `intensity` | number ≥ 0 | `1` | hdr and room: scales it. |
+| `intensity` | number ≥ 0 | `1` | analytic, hdr and room: scales the sky's radiance everywhere, as seen and as the light it casts. |
+| `backdrop` | number > 0 | `1` | scales only the sky as seen behind the scene, not the light it casts. Any kind; not on a layer. |
+| `horizon_color` | `[r, g, b]`, each ≥ 0 | none | a tint blended into the seen sky near the horizon. Any kind; not on a layer. |
+| `horizon_width` | number, above 0 and at most 90 | `10` | degrees above the horizon over which the tint fades out. |
+| `horizon_amount` | number, 0 to 1 | `0` | the tint's strength at the horizon; without it there is no tint. |
 | `turbidity` | number, 1 to 10 | `3` | analytic only. |
 | `ground_albedo` | `[r, g, b]`, each ≥ 0 | `[0.2, 0.2, 0.2]` | analytic only. |
 | `ambient` | number ≥ 0 | `1` | analytic only, with an authored sun: the sky's level. |
 | `prepare` | table | none | `[sky.prepare]`, hdr only. |
 | `room` | table | room: needed | `[sky.room]`, room only. |
 | `layer` | tables | none | `[[sky.layer]]`, mix only: two or more. |
+| `keys` | inline table | none | keyed values over time, see [Keys over time](#keys-over-time): `intensity`, `backdrop`, `horizon_color`, `horizon_width`, `horizon_amount`. |
 
-An analytic sky takes `turbidity`, `ground_albedo` and `ambient` and follows the sun; an hdr sky takes `path`, `rotation_deg`, `intensity` and `[sky.prepare]`; a room sky takes `[sky.room]`, `rotation_deg` and `intensity`; a mix sky takes only `[[sky.layer]]`. Any other key of `[sky]` is refused for that kind (`bad-value`). Without `[sky]` the sky is black.
+`backdrop` and the `horizon_` keys shape only what the camera sees of the sky, after any mix; its lighting is untouched. An analytic sky takes `turbidity`, `ground_albedo`, `ambient` and `intensity` and follows the sun; an hdr sky takes `path`, `rotation_deg`, `intensity` and `[sky.prepare]`; a room sky takes `[sky.room]`, `rotation_deg` and `intensity`; a mix sky takes only `[[sky.layer]]`. Any other key of `[sky]` is refused for that kind (`bad-value`). Without `[sky]` the sky is black.
 
 `[sky.prepare]` prepares the HDR before it turns, in this order; it needs at least one key:
 
@@ -696,6 +733,7 @@ An analytic sky takes `turbidity`, `ground_albedo` and `ambient` and follows the
 | key | type | default | notes |
 |---|---|---|---|
 | `weight` | number ≥ 0 | `1` | the layer's share; the mix is the weighted sum, not renormalised. Only a layer takes it. |
+| `keys` | inline table | none | keyed values over time, see [Keys over time](#keys-over-time): `intensity`. |
 
 A layer is not a mix and holds no layers. The mix is baked once, on load, into one HDR.
 
@@ -724,6 +762,7 @@ A haze fills a box (a room haze, with `lo` and `hi`) or the open air (an outdoor
 | `ambient` | `[r, g, b]`, each ≥ 0 | `[0.03, 0.03, 0.03]` | |
 | `unmapped` | number ≥ 0 | `0` | |
 | `seed` | unsigned integer | `0` | |
+| `keys` | inline table | none | keyed values over time, see [Keys over time](#keys-over-time): `amount`, `color` (`[r, g, b]`). |
 
 ### `[camera]`
 
@@ -742,10 +781,11 @@ A haze fills a box (a room haze, with `lo` and `hi`) or the open air (an outdoor
 | `shift` | `[x, y]` | `[0, 0]` | lens shift in halves of the view, right and up (`0.5` moves the picture a quarter of its width). |
 | `fstop` | number > 0 | none | perspective: depth of field through a thin lens of the camera's focal length at this f-number. Without it everything is sharp. |
 | `focus` | number | the distance from `at` to `look_at` | perspective, with `fstop` only: the focus distance in scene units, beyond the focal length. |
-| `focus_keys` | array of `[seconds, distance]` | none | perspective, with `fstop` only: the focus distance over time, linear between keys and held past the ends; seconds ≥ 0 and in order, distances > 0. When present it drives the focus and `focus` is ignored. |
+| `focus_keys` | array of `[seconds, distance]` | none | perspective, with `fstop` only: the focus distance over time, linear between keys and held past the ends; seconds ≥ 0 and in order, distances > 0. When present it drives the focus and `focus` is ignored. Another spelling of `keys.focus`; not with it. |
 | `preset` | table | none | `[camera.preset]`. |
+| `keys` | inline table | none | keyed values over time, see [Keys over time](#keys-over-time): `fov` (not with `focal`), `fstop`, `focus`. |
 
-An orthographic camera refuses `fov`, `focal`, `sensor`, `fstop` and `focus`.
+An orthographic camera refuses `fov`, `focal`, `sensor`, `fstop` and `focus`, static or keyed.
 
 `[camera.preset]` tunes the camera director over its defaults. Angles are degrees; every value is a number unless said.
 
@@ -771,6 +811,7 @@ The image's finish: a chain of post passes. `[finish]` takes either `file`, a fi
 | `file` | path | none | a finish file. With `file`, `[finish]` holds no inline key. |
 | the finish keys | below | none | inline. |
 | `pass` | tables | none | `[[finish.pass]]`. |
+| `keys` | inline table | none | keyed values over time, see [Keys over time](#keys-over-time): `exposure`, `lut_amount`; with `file` too. |
 
 Inline keys build the chain as the finish file does: a style's passes first, then each key adds or tunes its pass, keys taken in name order, not in the order written. For an order of your own, list passes in `[[finish.pass]]`: they apply in the order written, after the base (the file's chain, or the style and inline keys). Each `[[finish.pass]]` is a table of finish keys that builds its passes from nothing, usually one key or the keys of one pass (`cel_bands` with `cel_shadow`). A pass that builds nothing (empty, or only `encode = false`), or names `style`, `seed`, `frame` or `file`, is refused. Without `[finish]` the engine's standard finish applies.
 
