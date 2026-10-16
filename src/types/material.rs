@@ -168,6 +168,35 @@ pub struct Wet {
     pub seed: Option<u64>,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Fabric {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub color: Option<[f32; 3]>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub roughness: Option<f32>,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Anisotropy {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub strength: Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rotation: Option<f32>,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Scatter {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub color: Option<[f32; 3]>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub radius: Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub amount: Option<f32>,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct ContentLayer {
@@ -225,6 +254,12 @@ pub struct Material {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub wet: Option<Wet>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub fabric: Option<Fabric>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub anisotropy: Option<Anisotropy>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub scatter: Option<Scatter>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub authoring: Option<toml::Value>,
 }
 
@@ -259,6 +294,9 @@ impl Default for Material {
             layers: Vec::new(),
             ageing: Ageing::default(),
             wet: None,
+            fabric: None,
+            anisotropy: None,
+            scatter: None,
             authoring: None,
         }
     }

@@ -17,8 +17,8 @@ pub use finish::{
     Warmth, WarmthKind, WarmthTable,
 };
 pub use material::{
-    Ageing, Blend, Content as ContentKind, ContentLayer, Family, LAYER_CAP, Maps, Material,
-    NoiseKind, NoiseLayer, Normal, NormalSource, PARAMS, Wet,
+    Ageing, Anisotropy, Blend, Content as ContentKind, ContentLayer, Fabric, Family, LAYER_CAP,
+    Maps, Material, NoiseKind, NoiseLayer, Normal, NormalSource, PARAMS, Scatter, Wet,
 };
 pub use scene::{
     Animation, BlendClip, Body, BodyKind, BodyShape, Bounds, Camera, Casters, CellSize, Character,

@@ -968,6 +968,17 @@ fn unit(issues: &mut Issues, key: &[&str], value: Option<f32>) {
     }
 }
 
+fn unit_color(issues: &mut Issues, key: &[&str], value: Option<[f32; 3]>) {
+    if let Some(value) = value
+        && !value.iter().all(|part| (0.0..=1.0).contains(part))
+    {
+        issues.at(
+            key,
+            format!("{} = {value:?} is outside 0 to 1", key.join(".")),
+        );
+    }
+}
+
 fn at_least(issues: &mut Issues, key: &str, value: Option<f32>, low: f32) {
     if let Some(value) = value
         && !(value.is_finite() && value >= low)
@@ -2055,6 +2066,37 @@ pub(crate) fn material(name: &str, material: &Material) -> Issues {
             issues.at(
                 &["wet", "puddle_scale"],
                 format!("material {name}: wet.puddle_scale is above 0"),
+            );
+        }
+    }
+    if let Some(fabric) = &material.fabric {
+        unit_color(&mut issues, &["fabric", "color"], fabric.color);
+        unit(&mut issues, &["fabric", "roughness"], fabric.roughness);
+    }
+    if let Some(anisotropy) = &material.anisotropy {
+        unit(
+            &mut issues,
+            &["anisotropy", "strength"],
+            anisotropy.strength,
+        );
+        if let Some(rotation) = anisotropy.rotation
+            && !rotation.is_finite()
+        {
+            issues.at(
+                &["anisotropy", "rotation"],
+                format!("material {name}: anisotropy.rotation is a finite number of radians"),
+            );
+        }
+    }
+    if let Some(scatter) = &material.scatter {
+        unit_color(&mut issues, &["scatter", "color"], scatter.color);
+        unit(&mut issues, &["scatter", "amount"], scatter.amount);
+        if let Some(radius) = scatter.radius
+            && !positive(radius)
+        {
+            issues.at(
+                &["scatter", "radius"],
+                format!("material {name}: scatter.radius is above 0"),
             );
         }
     }

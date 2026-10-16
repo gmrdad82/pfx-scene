@@ -980,6 +980,9 @@ Play mode's rigid world; renderers ignore it.
 | `layers` | tables | none | `[[materials.<name>.layers]]`: at most four noise layers. |
 | `ageing` | table | every key `0` | `[materials.<name>.ageing]`. |
 | `wet` | table | none | `[materials.<name>.wet]`: a wet surface, below. |
+| `fabric` | table | none | a cloth sheen layer (glTF's `KHR_materials_sheen`), below. |
+| `anisotropy` | table | none | stretched highlights, as on brushed metal or hair (glTF's `KHR_materials_anisotropy`), below. |
+| `scatter` | table | none | light wrapping into the surface, a cheap subsurface look for skin and wax, below. |
 | `authoring` | any | none | |
 
 The families: `plain`, `paper`, `plaster`, `stone`, `cloth`, `metal`, `occluder`, `petal`, `leaf`, `bark`, `cord`, `wood`, `lacquer`, `glass`, `liquid`, `emissive`, `chrome`. The content kinds: `none`, `ink`, `decal`, `screen`, `photo`, `scroll`, `print`, `field`.
@@ -1004,6 +1007,18 @@ The families: `plain`, `paper`, `plaster`, `stone`, `cloth`, `metal`, `occluder`
 | `strength` | number | `1` | |
 
 `wet` keys, each optional: `amount` (number, 0 to 1, how wet), `puddles` (number, 0 to 1, how much of the surface stands in puddles), `puddle_scale` (number > 0, the puddles' size in scene units) and `seed` (unsigned integer).
+
+`fabric`, `anisotropy` and `scatter` are tables, written inline (`fabric = { color = [0.9, 0.8, 0.7], roughness = 0.6 }`) or as `[materials.<name>.fabric]`; every key in them is optional:
+
+| table | key | type | notes |
+|---|---|---|---|
+| `fabric` | `color` | `[r, g, b]` | 0 to 1; the sheen's colour. |
+| `fabric` | `roughness` | number | 0 to 1; the sheen's roughness. |
+| `anisotropy` | `strength` | number | 0 to 1; how stretched the highlight is. |
+| `anisotropy` | `rotation` | number | finite, radians; turns the stretch direction around the normal. |
+| `scatter` | `color` | `[r, g, b]` | 0 to 1; the colour the light takes as it wraps. |
+| `scatter` | `radius` | number | above 0, scene units; how far the light wraps. |
+| `scatter` | `amount` | number | 0 to 1; how much of the light wraps. |
 
 `ageing`, when present, needs all eight keys: `fade`, `yellow`, `ink`, `scratch`, `edge`, `dust`, `patina` (numbers, usually 0 to 1) and `seed` (unsigned integer).
 

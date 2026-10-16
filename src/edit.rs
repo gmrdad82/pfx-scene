@@ -384,6 +384,9 @@ const ORDER_MATERIAL: &[&str] = &[
     "layers",
     "ageing",
     "wet",
+    "fabric",
+    "anisotropy",
+    "scatter",
     "authoring",
 ];
 
