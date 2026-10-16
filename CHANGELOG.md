@@ -1,5 +1,17 @@
 # Changelog
 
+## v1.6.0 — 2026-10-16
+
+### Added
+
+- JSON Schemas for every kind of scene file in docs/schema/, generated from the types, so TOML editors complete keys and mark unknown keys and wrong types; the optional schema feature gives them from the crate.
+
+### Fixed
+
+- A scene that is not found is now a missing-file diagnostic naming it, from checks, fixes and SceneEdit::open alike, instead of "the scene does not load".
+- A placement whose prefab id names no placement is now reported at its prefab key instead of checking clean and placing nothing.
+- An override that breaks a relation inside a prefab (a reference to nothing, a parent cycle, an object two movers move, a hit sound on an object without a body, a second looping sound) is now reported at the override.
+
 ## v1.5.0 — 2026-10-16
 
 ### Added
