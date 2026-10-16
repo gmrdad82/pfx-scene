@@ -154,7 +154,7 @@ The examples in [examples/](examples/) are small programs on this API: `scene-ch
 
 ## Part of PITO MD
 
-pfx-scene is one of the [PITO MD](https://pitomd.com) tools. [pfx](https://github.com/gmrdad82/pfx), the game and render engine with its scene editor, and [Manfred](https://github.com/gmrdad82/manfred), the scene builder and viewer, keep their scenes in this format and depend on this crate. The clips here were recorded with [prec](https://github.com/gmrdad82/prec) and made into GIFs with [pconv](https://github.com/gmrdad82/pconv), and the chart was drawn by [pito-compare](https://github.com/gmrdad82/pito-compare).
+pfx-scene is one of the [PITO MD](https://pitomd.com) tools. [pfx](https://github.com/gmrdad82/pfx), the game and render engine with its scene editor, and [Manfred](https://github.com/gmrdad82/manfred), the scene builder and viewer, keep their scenes in this format and depend on this crate. The clips here were recorded with [prec](https://github.com/gmrdad82/prec) and made into GIFs with pcod from [pito-codecs](https://github.com/gmrdad82/pito-codecs), and the chart was drawn by [pito-compare](https://github.com/gmrdad82/pito-compare).
 
 ## Build and test
 
