@@ -72,7 +72,7 @@ let thumb = reader.chunk(THMB)?;
 let wood = reader.named(manf::FILE, "maps/wood.png")?;
 ```
 
-- `Reader::from_bytes(&[u8])` reads a slice it borrows; a stored chunk comes back borrowed, zero-copy. `Reader::open(path)` reads only the header, the table and the name block, then each chunk's range when it is asked for.
+- `Reader::from_bytes(&[u8])` reads a slice it borrows; a stored chunk comes back borrowed from that slice, zero-copy, and may outlive the reader. `Reader::open(path)` reads only the header, the table and the name block, then each chunk's range when it is asked for.
 - `reader.chunk(tag)` (the first of a tag), `reader.named(tag, name)`, `reader.chunks(tag)` (every one, with its name) return `Result<Option<Cow<[u8]>>>` or a list; `reader.entries()` lists every chunk's tag, name, flags, codec, offset, stored and raw lengths and checksum; `reader.read(index)` and `reader.stored(index)` take a table index.
 - `Writer::new().chunk(tag, bytes, codec)`, `.named(tag, name, bytes, codec)` and `.copy(&reader, index)?` (a chunk copied through as stored, without recompressing) build a file; `.to_vec()` gives its bytes and `.write(path)` writes it atomically (a temporary file beside it, synced, then renamed). The same chunks give the same bytes. Chunks of 1 MiB or more are encoded on their own threads.
 - `Codec::Auto` stores PNG, JPEG, RIFF, gzip, zip, zstd, Ogg and FLAC data as it is, compresses everything else with LZ4 and keeps the raw bytes when that saves nothing. `Codec::Store`, `Codec::Deflate` (level 6) and `Codec::Lz4` force one.

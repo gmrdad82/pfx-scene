@@ -250,11 +250,11 @@ impl<'a> Reader<'a> {
             .position(|entry| entry.tag == tag && entry.name == name)
     }
 
-    pub fn chunk(&self, tag: Tag) -> Result<Option<Cow<'_, [u8]>>> {
+    pub fn chunk(&self, tag: Tag) -> Result<Option<Cow<'a, [u8]>>> {
         self.find(tag).map(|index| self.read(index)).transpose()
     }
 
-    pub fn named(&self, tag: Tag, name: &str) -> Result<Option<Cow<'_, [u8]>>> {
+    pub fn named(&self, tag: Tag, name: &str) -> Result<Option<Cow<'a, [u8]>>> {
         self.find_named(tag, name)
             .map(|index| self.read(index))
             .transpose()
@@ -269,7 +269,7 @@ impl<'a> Reader<'a> {
             .collect()
     }
 
-    pub fn stored(&self, index: usize) -> Result<Cow<'_, [u8]>> {
+    pub fn stored(&self, index: usize) -> Result<Cow<'a, [u8]>> {
         let entry = self
             .entries
             .get(index)
@@ -290,7 +290,7 @@ impl<'a> Reader<'a> {
         }
     }
 
-    pub fn read(&self, index: usize) -> Result<Cow<'_, [u8]>> {
+    pub fn read(&self, index: usize) -> Result<Cow<'a, [u8]>> {
         let stored = self.stored(index)?;
         let entry = &self.entries[index];
         let label = tag_text(entry.tag);
