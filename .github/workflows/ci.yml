@@ -35,8 +35,8 @@ jobs:
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
-      - run: cargo fmt --check
-      - run: cargo clippy --all-targets --all-features --locked -- -D warnings
+      - run: cargo fmt --all --check
+      - run: cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
 
   test:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
@@ -59,6 +59,6 @@ jobs:
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
-      - run: cargo nextest run --all-features --locked --no-tests=pass --no-fail-fast
-      - run: cargo test --all-features --locked --doc
-      - run: cargo build --release --all-features --locked --lib --examples
+      - run: cargo nextest run --workspace --all-features --locked --no-tests=pass --no-fail-fast
+      - run: cargo test --workspace --all-features --locked --doc
+      - run: cargo build --workspace --release --all-features --locked --lib --examples

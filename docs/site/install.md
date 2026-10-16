@@ -18,6 +18,15 @@ pfx-scene = { git = "https://github.com/gmrdad82/pfx-scene", tag = "v1.0.1" }
 
 Then `use pfx_scene::…` in your code. Every tag is on the [releases page](https://github.com/gmrdad82/pfx-scene/releases).
 
+The same repository holds `manf`, the `.manf` container crate, which pins the same way:
+
+```toml
+[dependencies]
+manf = { git = "https://github.com/gmrdad82/pfx-scene", tag = "v1.0.1" }
+```
+
+[Read and write a .manf file](../guides/manf/) shows its API.
+
 ## Try the demo
 
 The repository holds a demo project in `examples/demo` and four small programs on the API. Clone it and check the demo:

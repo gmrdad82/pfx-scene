@@ -152,6 +152,15 @@ std::fs::write("my-game/scenes/old.scene.toml", migrated).unwrap();
 
 The examples in [examples/](examples/) are small programs on this API: `scene-check` checks a project, `scene-tree` prints a resolved scene, `scene-write` moves, renames, sets a material or migrates a file, and `scene-bench` measures the table above. What changed in each version is in [CHANGELOG.md](CHANGELOG.md).
 
+## The .manf container
+
+The repository also holds `manf` ([manf/](manf/README.md)), the crate for `.manf` files: one file of named chunks (a scene's TOML files, its glTF, the files it names, a thumbnail), each checksummed and stored or compressed on its own with LZ4 or deflate, so a reader decodes only the chunks it needs and borrows stored ones without a copy. A reader refuses a cut, oversized or corrupt file with an error, never a panic, and the writer gives the same bytes for the same chunks. Its only dependency is miniz_oxide; its LZ4 and CRC-32 are ported from lz4_flex and crc32fast. It pins the same way:
+
+```toml
+[dependencies]
+manf = { git = "https://github.com/gmrdad82/pfx-scene", tag = "v1.0.1" }
+```
+
 ## Part of PITO MD
 
 pfx-scene is one of the [PITO MD](https://pitomd.com) tools. [pfx](https://github.com/gmrdad82/pfx), the game and render engine with its scene editor, and [Manfred](https://github.com/gmrdad82/manfred), the scene builder and viewer, keep their scenes in this format and depend on this crate. The clips here were recorded with [prec](https://github.com/gmrdad82/prec) and made into GIFs with pcod from [pito-codecs](https://github.com/gmrdad82/pito-codecs), and the chart was drawn by [pito-compare](https://github.com/gmrdad82/pito-compare).

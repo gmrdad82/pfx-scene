@@ -1,0 +1,57 @@
+manf
+Copyright (c) 2026 Cătălin Ilinca, under the MIT licence.
+
+src/lz4.rs is a port of the LZ4 block encoder and decoder of lz4_flex 0.14.0
+(https://github.com/pseitz/lz4_flex, commit
+1bffdcbbf906a234b913937cb2f57c0245915038), altered, under the MIT licence:
+
+  The MIT License (MIT)
+
+  Copyright (c) 2020 Pascal Seitz
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy of
+  this software and associated documentation files (the "Software"), to deal in
+  the Software without restriction, including without limitation the rights to
+  use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+  the Software, and to permit persons to whom the Software is furnished to do so,
+  subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+  FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+  COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+  IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+  CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+src/crc32.rs is a port of the slice-by-16 CRC-32 of crc32fast 1.5.0
+(https://github.com/srijs/rust-crc32fast, tag v1.5.0), altered, dual licensed
+MIT or Apache-2.0 and taken here under the MIT licence:
+
+  MIT License
+
+  Copyright (c) 2018 Sam Rijs, Alex Crichton and contributors
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+
+src/sha256.rs is pfx-scene's SHA-256 (https://github.com/gmrdad82/pfx-scene,
+src/sha256.rs at commit 2024691c0ac7e18eb72fe68d13e12d80c5ba997e), Copyright (c)
+2026 Cătălin Ilinca, under the MIT licence.
