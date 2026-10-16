@@ -1257,6 +1257,22 @@ pub struct Location {
 
 A JSON Schema for TOML editors follows format 1.
 
+## Scenes in a .manf file
+
+A scene and every file it reads can live in one `.manf` file (the container is the `manf` crate in this repository; its README is the byte layout). The TOML files stay exactly as they are on disk, as chunks inside it:
+
+- `SMET`, unnamed and stored, is a small TOML table: `format` (the scene format, 1), `entry` (the scene file the `.manf` opens to), and `recipe` and `scene` when a tool built the scene from a recipe (the SHA-256 of the recipe and of the scene chunks as built, so that tool sees an edit made elsewhere). The editor never changes `recipe` or `scene`.
+- `SCNE`, one per TOML file of the scene (the root scene, its includes, its material libraries, the prefabs it places and their files), named by its path from the project root, exactly as the scene's own paths name it.
+- `FILE`, one per other file the scene names (meshes, images, fonts, sounds, LUTs), named the same way. Images and other packed data are stored as they are, so a reader borrows them without a copy.
+- Other chunks (`GLTF`, `GBIN`, `THMB`, a recipe and its facts) are kept as they are.
+
+A `.manf` scene lays its files over the project: inside it, a path resolves to the `.manf`'s own `SCNE` or `FILE` chunk of that name first and then to the file on disk, still inside the project root. A library prefab or a shared mesh outside the scene stays a file on disk. `mesh.<name>.file = "@gltf"` names the glTF in the `.manf`'s own `GLTF` and `GBIN` chunks, with `node` naming its node; outside a `.manf` that holds one it is `missing-file`. The project root is found as for any file: the nearest folder above the `.manf` with a `project.toml`, or the `.manf`'s own folder.
+
+- `Project::open_manf(path)` opens one; `Project::scene`, `check`, `read` and `fix` then work on its files, and `Project::open` of a folder also checks every `.manf` in it. Diagnostics on a file inside it name it as `<the .manf>/<its name>` (`scenes/room.manf/scenes/room.scene.toml:12:5`). A `.manf` that is cut or corrupt, holds no `SMET`, names an entry it doesn't hold, a chunk name that is not a path inside the project, or a newer scene format is refused (`unreadable`).
+- `Project::asset(path)` gives a file's bytes from the `.manf` or the disk, refusing a path that leaves the root; `Project::manf()` gives the container's reader, for the `GLTF` and `GBIN` chunks; `Project::path_of(file)` and `shown(file)` give the path an editor shows for a file.
+- `SceneEdit::open` takes the `.manf` (or `<the .manf>/<file>`) and edits its TOML in place: every edit, undo, redo and dry run works as on disk, and a write rewrites the `.manf` once, through a temporary file and a rename, keeping every chunk it doesn't change byte for byte and in its place (a new chunk goes at the end). `PatchGroup::write` does the same for a group whose files are inside a `.manf`.
+- `pack(project, scene)` gives the `.manf` bytes of a scene of TOML files: its `SMET`, then each TOML file it reads (its entry first, the rest in path order), then each other file it names (in path order), compressed with the container's default. The same files give the same bytes. `unpack(bytes, folder)` writes the `SCNE` and `FILE` chunks back out as files under the folder, refusing to write through a link; unpacking and packing again gives the same bytes, and unpacking a packed scene gives its files exactly.
+
 ## The crate
 
-`pfx-scene` is MIT licensed. It depends on `toml`, `toml_edit` and `serde` only. Vectors are plain arrays (`[f32; 3]`), never a maths crate's types. Its semver is its own; the `format` number changes only with a migration.
+`pfx-scene` is MIT licensed. It depends on `toml`, `toml_edit` and `serde`, and on `manf` from this repository for `.manf` scenes. Vectors are plain arrays (`[f32; 3]`), never a maths crate's types. Its semver is its own; the `format` number changes only with a migration.

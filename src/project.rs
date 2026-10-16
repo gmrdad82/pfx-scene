@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
@@ -7,6 +8,7 @@ use toml_edit::DocumentMut;
 use crate::code;
 use crate::edit::first_error;
 use crate::migrate::{add_ids, entry_kinds};
+use crate::mount::{GLTF_PATH, Mount};
 use crate::paths::{Found, Listing, PathError, rooted, slashed};
 use crate::read::{self, Context, Doc, Finding, Parsed};
 use crate::rules::{self, Issues};
@@ -28,6 +30,8 @@ pub struct Project {
     root: PathBuf,
     marked: bool,
     texts: BTreeMap<PathBuf, Result<String, String>>,
+    manfs: Vec<PathBuf>,
+    mount: Option<Mount>,
 }
 
 fn key(parts: &[&str]) -> KeyPath {
@@ -61,7 +65,13 @@ fn skipped(root: &Path) -> BTreeSet<PathBuf> {
         .collect()
 }
 
-fn discover(root: &Path, folder: &Path, skip: &BTreeSet<PathBuf>, out: &mut Vec<PathBuf>) {
+fn discover(
+    root: &Path,
+    folder: &Path,
+    skip: &BTreeSet<PathBuf>,
+    out: &mut Vec<PathBuf>,
+    manfs: &mut Vec<PathBuf>,
+) {
     let Ok(entries) = std::fs::read_dir(root.join(folder)) else {
         return;
     };
@@ -84,9 +94,11 @@ fn discover(root: &Path, folder: &Path, skip: &BTreeSet<PathBuf>, out: &mut Vec<
             if root.join(&relative).join("project.toml").is_file() {
                 continue;
             }
-            discover(root, &relative, skip, out);
+            discover(root, &relative, skip, out, manfs);
         } else if kind.is_file() && FileKind::of(&relative).is_some() {
             out.push(relative);
+        } else if kind.is_file() && relative.extension().is_some_and(|end| end == "manf") {
+            manfs.push(relative);
         }
     }
 }
@@ -122,7 +134,14 @@ impl Project {
             });
         }
         let mut files = Vec::new();
-        discover(&root, Path::new(""), &skipped(&root), &mut files);
+        let mut manfs = Vec::new();
+        discover(
+            &root,
+            Path::new(""),
+            &skipped(&root),
+            &mut files,
+            &mut manfs,
+        );
         let texts = files
             .into_iter()
             .map(|file| {
@@ -138,7 +157,106 @@ impl Project {
             marked: root.join("project.toml").is_file(),
             root,
             texts,
+            manfs,
+            mount: None,
         })
+    }
+
+    #[allow(clippy::result_large_err)]
+    pub fn open_manf(file: &Path) -> Result<Project, Diagnostic> {
+        let absolute = std::path::absolute(file).unwrap_or_else(|_| file.to_path_buf());
+        let root = Self::root_of(&absolute);
+        let relative = absolute
+            .strip_prefix(&root)
+            .map(|inside| PathBuf::from(slashed(inside)))
+            .unwrap_or_else(|_| absolute.clone());
+        let mount = Mount::read(&root, &relative).map_err(|message| Diagnostic {
+            file: relative.clone(),
+            line: 1,
+            column: 1,
+            end_line: 1,
+            end_column: 1,
+            severity: Severity::Error,
+            code: code::UNREADABLE,
+            key: String::new(),
+            message: format!("{} {message}", relative.display()),
+            related: Vec::new(),
+        })?;
+        let texts = mount
+            .texts
+            .iter()
+            .map(|(file, text)| (file.clone(), Ok(text.clone())))
+            .collect();
+        Ok(Project {
+            marked: root.join("project.toml").is_file(),
+            root,
+            texts,
+            manfs: Vec::new(),
+            mount: Some(mount),
+        })
+    }
+
+    pub fn manf_file(&self) -> Option<&Path> {
+        self.mount.as_ref().map(|mount| mount.file.as_path())
+    }
+
+    pub fn manf(&self) -> Option<manf::Reader<'_>> {
+        self.mount.as_ref().and_then(Mount::reader)
+    }
+
+    pub fn entry(&self) -> Option<&Path> {
+        self.mount.as_ref().map(|mount| mount.entry.as_path())
+    }
+
+    pub fn path_of(&self, file: &Path) -> PathBuf {
+        self.root.join(self.shown(file))
+    }
+
+    pub fn shown(&self, file: &Path) -> PathBuf {
+        match &self.mount {
+            Some(mount) if mount.texts.contains_key(file) => mount.file.join(file),
+            _ => file.to_path_buf(),
+        }
+    }
+
+    pub fn asset(&self, path: &str) -> std::io::Result<Cow<'_, [u8]>> {
+        let refused =
+            |message: String| std::io::Error::new(std::io::ErrorKind::InvalidInput, message);
+        let rooted = rooted(path).map_err(|error| refused(error.message(path)))?;
+        if let Some(mount) = &self.mount {
+            if let Some(found) = mount.file_bytes(&rooted) {
+                return found;
+            }
+            if let Some(text) = mount.texts.get(Path::new(&rooted)) {
+                return Ok(Cow::Owned(text.clone().into_bytes()));
+            }
+        }
+        let target = self.root.join(&rooted);
+        let inside =
+            std::fs::canonicalize(&target)?.starts_with(std::fs::canonicalize(&self.root)?);
+        if !inside {
+            return Err(refused(format!("path {path} leaves the project root")));
+        }
+        std::fs::read(target).map(Cow::Owned)
+    }
+
+    pub(crate) fn source(&self, file: &Path) -> std::io::Result<String> {
+        match self.texts.get(file) {
+            Some(Ok(text)) => Ok(text.clone()),
+            _ => std::fs::read_to_string(self.root.join(file)),
+        }
+    }
+
+    fn shown_all(&self, mut diagnostics: Vec<Diagnostic>) -> Vec<Diagnostic> {
+        if self.mount.is_some() {
+            for diagnostic in &mut diagnostics {
+                diagnostic.file = self.shown(&diagnostic.file);
+                for related in &mut diagnostic.related {
+                    related.file = self.shown(&related.file);
+                }
+            }
+        }
+        diagnostics
     }
 
     pub fn root(&self) -> &Path {
@@ -154,19 +272,35 @@ impl Project {
     }
 
     pub fn relative(&self, file: &Path) -> PathBuf {
-        let absolute = if file.is_absolute() {
-            file.to_path_buf()
+        let relative = if file.is_absolute() {
+            match file.strip_prefix(&self.root) {
+                Ok(inside) => inside.to_path_buf(),
+                Err(_) => return file.to_path_buf(),
+            }
         } else {
-            return PathBuf::from(slashed(file));
+            PathBuf::from(slashed(file))
         };
-        absolute
-            .strip_prefix(&self.root)
-            .map(Path::to_path_buf)
-            .unwrap_or(absolute)
+        let Some(mount) = &self.mount else {
+            return relative;
+        };
+        if relative == mount.file {
+            return mount.entry.clone();
+        }
+        match relative.strip_prefix(&mount.file) {
+            Ok(inner) => PathBuf::from(slashed(inner)),
+            Err(_) => relative,
+        }
     }
 
     pub fn check(&self) -> Vec<Diagnostic> {
-        Checker::new(self, BTreeMap::new()).all()
+        let mut diagnostics = self.shown_all(Checker::new(self, BTreeMap::new()).all());
+        for manf in &self.manfs {
+            match Project::open_manf(&self.root.join(manf)) {
+                Ok(project) => diagnostics.extend(project.check()),
+                Err(diagnostic) => diagnostics.push(diagnostic),
+            }
+        }
+        diagnostics
     }
 
     pub fn scene(&self, file: &Path) -> Result<Scene, Vec<Diagnostic>> {
@@ -178,11 +312,35 @@ impl Project {
         file: &Path,
         overlay: BTreeMap<PathBuf, String>,
     ) -> Result<Scene, Vec<Diagnostic>> {
-        self.resolve(file, overlay).0
+        match self.resolve(file, overlay).0 {
+            Ok(mut scene) => {
+                scene.warnings = self.shown_all(scene.warnings);
+                Ok(scene)
+            }
+            Err(found) => Err(self.shown_all(found)),
+        }
     }
 
     pub fn check_with(&self, overlay: BTreeMap<PathBuf, String>) -> Vec<Diagnostic> {
-        Checker::new(self, self.overlaid(overlay)).all()
+        self.shown_all(Checker::new(self, self.overlaid(overlay)).all())
+    }
+
+    pub(crate) fn closure(
+        &self,
+        file: &Path,
+    ) -> Result<(Scene, BTreeSet<PathBuf>), Vec<Diagnostic>> {
+        let file = self.relative(file);
+        let kind = FileKind::of(&file).unwrap_or(FileKind::Scene);
+        let mut checker = Checker::new(self, BTreeMap::new());
+        let scene = checker.context(&file, kind);
+        checker.unique_ids();
+        let diagnostics = checker.report();
+        match scene {
+            Some(scene) if !diagnostics.iter().any(Diagnostic::is_error) => {
+                Ok((scene, checker.found))
+            }
+            _ => Err(self.shown_all(diagnostics)),
+        }
     }
 
     fn overlaid(&self, overlay: BTreeMap<PathBuf, String>) -> BTreeMap<PathBuf, String> {
@@ -234,7 +392,8 @@ impl Project {
             diagnostics: Vec::new(),
         };
         let (scene, kinds) = self.resolve(file, BTreeMap::new());
-        let scene = scene.map_err(|found| first_error(&found, &self.root, label))?;
+        let scene =
+            scene.map_err(|found| first_error(&self.shown_all(found), &self.root, label))?;
         let mut taken = self.ids(&BTreeMap::new());
         let mut patches = Vec::new();
         for path in &scene.files {
@@ -271,7 +430,7 @@ impl Project {
             }
             patches.push(Patch {
                 label: label.to_string(),
-                file: self.root.join(path),
+                file: self.path_of(path),
                 before: text,
                 after: doc.to_string(),
             });
@@ -345,7 +504,7 @@ impl Project {
             .and_then(|parsed| parsed.file());
         match typed {
             Some(file) if !diagnostics.iter().any(Diagnostic::is_error) => Ok(file),
-            _ => Err(diagnostics),
+            _ => Err(self.shown_all(diagnostics)),
         }
     }
 
@@ -353,7 +512,7 @@ impl Project {
         let relative = self.relative(file);
         let overlay = BTreeMap::new();
         let kind = self.kind_of(&relative, &overlay).unwrap_or(FileKind::Scene);
-        let text = std::fs::read_to_string(self.root.join(&relative)).map_err(|error| {
+        let text = self.source(&relative).map_err(|error| {
             vec![Diagnostic {
                 file: relative.clone(),
                 line: 1,
@@ -413,12 +572,13 @@ pub fn migrate(
 
 pub fn check(source: &str, file: &Path, project: &Project) -> Vec<Diagnostic> {
     let file = project.relative(file);
+    let shown = project.shown(&file);
     let mut overlay = BTreeMap::new();
-    overlay.insert(file.clone(), source.to_string());
+    overlay.insert(file, source.to_string());
     project
         .check_with(overlay)
         .into_iter()
-        .filter(|diagnostic| diagnostic.file == file)
+        .filter(|diagnostic| diagnostic.file == shown)
         .collect()
 }
 
@@ -766,6 +926,7 @@ struct Checker<'p> {
     unchecked: Vec<(PathBuf, Vec<Step>)>,
     bound: BTreeSet<PathBuf>,
     layers: Option<Option<Rc<Layers>>>,
+    found: BTreeSet<PathBuf>,
 }
 
 impl<'p> Checker<'p> {
@@ -783,6 +944,7 @@ impl<'p> Checker<'p> {
             unchecked: Vec::new(),
             bound: BTreeSet::new(),
             layers: None,
+            found: BTreeSet::new(),
         }
     }
 
@@ -939,11 +1101,14 @@ impl<'p> Checker<'p> {
             return None;
         }
         let overlay: BTreeSet<String> = self.overlay.keys().map(|key| slashed(key)).collect();
-        match self
-            .listing
-            .find(&self.project.root, &rooted, &|path| overlay.contains(path))
-        {
-            Found::Exact => Some(PathBuf::from(rooted)),
+        let mount = self.project.mount.as_ref();
+        match self.listing.find(&self.project.root, &rooted, &|path| {
+            overlay.contains(path) || mount.is_some_and(|mount| mount.holds(path))
+        }) {
+            Found::Exact => {
+                self.found.insert(PathBuf::from(&rooted));
+                Some(PathBuf::from(rooted))
+            }
             Found::Case(actual) => {
                 self.issue(
                     file,
@@ -1081,7 +1246,20 @@ impl<'p> Checker<'p> {
         for (name, mesh) in &doc.mesh {
             let path = key(&["mesh", name]);
             self.named(file, &path, "mesh", name, Part::Key);
-            self.asset(file, &under(&path, &["file".into()]), &mesh.file, &[]);
+            if mesh.file == GLTF_PATH {
+                if !self.project.mount.as_ref().is_some_and(|mount| mount.gltf) {
+                    self.issue(
+                        file,
+                        &under(&path, &["file".into()]),
+                        code::MISSING_FILE,
+                        format!(
+                            "{GLTF_PATH} names the glTF inside the scene's .manf, and this scene is not in a .manf that holds one"
+                        ),
+                    );
+                }
+            } else {
+                self.asset(file, &under(&path, &["file".into()]), &mesh.file, &[]);
+            }
             self.missing_id(file, path, &format!("mesh {name}"), mesh.id);
         }
         for (place, object) in &doc.object {

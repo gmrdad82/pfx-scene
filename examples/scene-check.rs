@@ -103,9 +103,17 @@ fn summary(scene: &Scene) -> String {
 
 fn main() -> ExitCode {
     let paint = Paint::new();
-    let root = PathBuf::from(std::env::args().nth(1).unwrap_or_else(|| ".".into()));
-    let project = match Project::open(&root) {
-        Ok(project) => project,
+    let mut root = PathBuf::from(std::env::args().nth(1).unwrap_or_else(|| ".".into()));
+    let opened = if root.extension().is_some_and(|end| end == "manf") {
+        Project::open_manf(&root)
+    } else {
+        Project::open(&root)
+    };
+    let project = match opened {
+        Ok(project) => {
+            root = project.root().to_path_buf();
+            project
+        }
         Err(diagnostic) => {
             show(&paint, &root, &diagnostic);
             return ExitCode::FAILURE;

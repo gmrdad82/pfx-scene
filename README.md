@@ -7,7 +7,7 @@
 One TOML format for 3D scenes, prefabs and material libraries, shared by a game engine and a 3D editor, so a scene saved in one opens in the other. It is the content format of [pfx](https://github.com/gmrdad82/pfx), the [PITO MD](https://pitomd.com) game and render engine, and of its editor; this crate reads, checks, resolves, edits and migrates it.
 
 - **Fast:** resolves a 1,000-object scene in 25 ms and checks its whole project in 28 ms; a 100-object scene takes 3 ms for either.
-- **Small:** three dependencies (`serde`, `toml`, `toml_edit`; 17 crates in the whole tree), no unsafe code, about 10,900 lines of Rust.
+- **Small:** four dependencies (`serde`, `toml`, `toml_edit` and this repository's `manf`; 21 crates in the whole tree), no unsafe code, about 14,700 lines of Rust with `manf`.
 - **Exact:** every mistake is reported at its file, line and column with a stable code, and every edit keeps the author's comments, spacing and key order.
 
 Works on Linux, Windows and macOS (CI-tested on all three).
@@ -149,8 +149,9 @@ std::fs::write("my-game/scenes/old.scene.toml", migrated).unwrap();
 - `Project::scene_with` and `check_with` resolve and check with unsaved texts in place of the files.
 - `Project::fix` fills the ids a scene's files lack.
 - `Project::migrate` rewrites an older file as the current format.
+- `pack` puts a scene and every file it reads into one `.manf` file, the same bytes every time; `unpack` writes them back out. `Project::open_manf` opens one, and checks, resolving and `SceneEdit` work on the TOML inside it in place.
 
-The examples in [examples/](examples/) are small programs on this API: `scene-check` checks a project, `scene-tree` prints a resolved scene, `scene-write` moves, renames, sets a material or migrates a file, and `scene-bench` measures the table above. What changed in each version is in [CHANGELOG.md](CHANGELOG.md).
+The examples in [examples/](examples/) are small programs on this API: `scene-check` checks a project or a `.manf` scene, `scene-tree` prints a resolved scene, `scene-write` moves, renames, sets a material or migrates a file, `scene-pack` packs a scene into a `.manf` and unpacks one, and `scene-bench` measures the table above. What changed in each version is in [CHANGELOG.md](CHANGELOG.md).
 
 ## The .manf container
 

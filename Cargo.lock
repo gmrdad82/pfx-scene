@@ -79,6 +79,7 @@ dependencies = [
 name = "pfx-scene"
 version = "1.4.0"
 dependencies = [
+ "manf",
  "serde",
  "toml",
  "toml_edit",

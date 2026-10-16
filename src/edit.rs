@@ -553,7 +553,7 @@ impl PatchGroup {
         for patch in &self.patches {
             let current = match running.get(patch.file.as_path()) {
                 Some((_, after)) => Some(after.to_string()),
-                None => std::fs::read_to_string(&patch.file).ok(),
+                None => crate::mount::current(&patch.file).ok(),
             };
             if current.as_deref() != Some(patch.before.as_str()) {
                 return Err(fail(
@@ -566,17 +566,8 @@ impl PatchGroup {
                 .map_or(patch.before.as_str(), |(first, _)| *first);
             running.insert(&patch.file, (first, &patch.after));
         }
-        let mut written: Vec<(&Path, &str)> = Vec::new();
-        for (file, (before, after)) in &running {
-            if let Err(error) = write(file, after) {
-                for (done, text) in written {
-                    let _ = write(done, text);
-                }
-                return Err(fail(file, format!("cannot write: {error}")));
-            }
-            written.push((file, before));
-        }
-        Ok(())
+        crate::mount::store(&running, write)
+            .map_err(|(file, error)| fail(&file, format!("cannot write: {error}")))
     }
 
     fn merge(&mut self, other: &PatchGroup) {
@@ -651,9 +642,9 @@ impl Refusal {
         self.code == crate::code::INCLUDE_CYCLE || self.code == crate::code::INCLUDE_DEPTH
     }
 
-    fn error(self, root: &Path, key: &str) -> EditError {
+    fn error(self, project: &Project, key: &str) -> EditError {
         EditError {
-            file: root.join(&self.file),
+            file: project.path_of(&self.file),
             key: key.to_string(),
             line: None,
             code: self.code,
@@ -671,7 +662,7 @@ struct Visit {
 
 impl Tree {
     fn gather(
-        root: &Path,
+        root: &Project,
         file: &Path,
         kind: FileKind,
         overlay: &BTreeMap<PathBuf, String>,
@@ -732,7 +723,7 @@ impl Tree {
     }
 
     fn visit(
-        root: &Path,
+        root: &Project,
         path: &Path,
         role: Role,
         kind: FileKind,
@@ -753,7 +744,7 @@ impl Tree {
 
     fn settle(
         &mut self,
-        root: &Path,
+        root: &Project,
         visit: Visit,
         kind: FileKind,
         overlay: &BTreeMap<PathBuf, String>,
@@ -780,7 +771,7 @@ impl Tree {
     }
 
     fn read(
-        root: &Path,
+        root: &Project,
         path: &Path,
         role: Role,
         kind: FileKind,
@@ -788,7 +779,7 @@ impl Tree {
     ) -> Result<File, Refusal> {
         let text = match overlay.get(path) {
             Some(text) => text.clone(),
-            None => std::fs::read_to_string(root.join(path)).map_err(|error| {
+            None => root.source(path).map_err(|error| {
                 Refusal::new(path, format!("cannot read {}: {error}", path.display()))
             })?,
         };
@@ -1264,7 +1255,7 @@ impl<'a> Draft<'a> {
             .ok_or_else(|| Refusal::new(file, format!("has no {wanted}")))
     }
 
-    fn patches(self, label: &str, root: &Path, taken: &BTreeSet<Id>) -> Vec<Patch> {
+    fn patches(self, label: &str, project: &Project, taken: &BTreeSet<Id>) -> Vec<Patch> {
         let mut taken = taken.clone();
         let mut patches = Vec::new();
         for (file, mut doc) in self.work {
@@ -1281,7 +1272,7 @@ impl<'a> Draft<'a> {
             let after = doc.to_string();
             patches.push(Patch {
                 label: label.to_string(),
-                file: root.join(&file),
+                file: project.path_of(&file),
                 before,
                 after,
             });
@@ -1398,13 +1389,13 @@ fn gather(
     key: &str,
 ) -> Result<Tree, EditError> {
     let root = project.root();
-    Tree::gather(root, file, kind, overlay).map_err(|refusal| {
+    Tree::gather(project, file, kind, overlay).map_err(|refusal| {
         if refusal.nested()
             && let Err(found) = project.scene_with(file, overlay.clone())
         {
             return first_error(&found, root, key);
         }
-        refusal.error(root, key)
+        refusal.error(project, key)
     })
 }
 
@@ -1413,7 +1404,16 @@ impl SceneEdit {
         let path = path.as_ref();
         let absolute = std::path::absolute(path).unwrap_or_else(|_| path.to_path_buf());
         let root = Project::root_of(&absolute);
-        let project = Project::open(&root).map_err(|diagnostic| EditError {
+        let manf = if absolute.extension().is_some_and(|end| end == "manf") && absolute.is_file() {
+            Some(absolute.clone())
+        } else {
+            crate::mount::manf_of(&absolute).map(|(manf, _)| manf)
+        };
+        let opened = match &manf {
+            Some(manf) => Project::open_manf(manf),
+            None => Project::open(&root),
+        };
+        let project = opened.map_err(|diagnostic| EditError {
             file: absolute.clone(),
             key: String::new(),
             line: None,
@@ -1446,7 +1446,7 @@ impl SceneEdit {
     }
 
     pub fn path(&self) -> PathBuf {
-        self.root.join(&self.file)
+        self.project.path_of(&self.file)
     }
 
     pub fn root(&self) -> &Path {
@@ -1462,7 +1462,10 @@ impl SceneEdit {
     }
 
     pub fn files(&self) -> impl Iterator<Item = PathBuf> + '_ {
-        self.tree.order.iter().map(|file| self.root.join(file))
+        self.tree
+            .order
+            .iter()
+            .map(|file| self.project.path_of(file))
     }
 
     pub fn text(&self, file: impl AsRef<Path>) -> Option<&str> {
@@ -1641,13 +1644,17 @@ impl SceneEdit {
             }
             running.insert(relative, patch.after.clone());
         }
-        for file in running.keys() {
-            let held = self.tree.files.get(file).map(|file| file.text.as_str());
-            match std::fs::read_to_string(self.root.join(file)) {
+        let paths: BTreeMap<&PathBuf, PathBuf> = running
+            .keys()
+            .map(|file| (file, self.project.path_of(file)))
+            .collect();
+        for (file, path) in &paths {
+            let held = self.tree.files.get(*file).map(|file| file.text.as_str());
+            match crate::mount::current(path) {
                 Ok(disk) if Some(disk.as_str()) == held => {}
                 _ => {
                     return Err(fail(
-                        &self.root.join(file),
+                        path,
                         None,
                         "changed on disk since it was read; reload the scene".to_string(),
                     ));
@@ -1655,19 +1662,17 @@ impl SceneEdit {
             }
         }
         let (scene, tree) = self.verify(&running, key)?;
-        let mut written: Vec<&PathBuf> = Vec::new();
-        for (file, text) in &running {
-            if let Err(error) = write(&self.root.join(file), text) {
-                for done in written {
-                    let _ = write(&self.root.join(done), &self.tree.files[done].text);
-                }
-                return Err(fail(
-                    &self.root.join(file),
-                    None,
-                    format!("cannot write: {error}"),
-                ));
-            }
-            written.push(file);
+        let changes: BTreeMap<&Path, (&str, &str)> = running
+            .iter()
+            .map(|(file, text)| {
+                (
+                    paths[file].as_path(),
+                    (self.tree.files[file].text.as_str(), text.as_str()),
+                )
+            })
+            .collect();
+        if let Err((file, error)) = crate::mount::store(&changes, write) {
+            return Err(fail(&file, None, format!("cannot write: {error}")));
         }
         for (file, text) in &running {
             self.project.update(file, text);
@@ -1736,8 +1741,8 @@ impl SceneEdit {
         let taken = self.project.ids(&overlay);
         let patches = {
             let mut draft = Draft::new(&self.tree, &self.file);
-            change(&mut draft).map_err(|refusal| refusal.error(&self.root, &key))?;
-            draft.patches(&label, &self.root, &taken)
+            change(&mut draft).map_err(|refusal| refusal.error(&self.project, &key))?;
+            draft.patches(&label, &self.project, &taken)
         };
         let group = PatchGroup { label, patches };
         if group.is_empty() {

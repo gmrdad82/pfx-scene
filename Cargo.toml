@@ -19,3 +19,4 @@ members = ["manf"]
 serde = { version = "1.0.229", features = ["derive"] }
 toml = "1.1.6"
 toml_edit = "0.25.15"
+manf = { path = "manf", version = "0.1.0" }

@@ -50,6 +50,46 @@ fn main() -> manf::Result<()> {
 
 A file that isn't a `.manf`, a newer version than the reader's, more than 65,536 chunks, a raw length over 4 GiB or over what its stored bytes can expand to, an invalid or repeated name, a misplaced or cut chunk, and a chunk whose checksum or decoded length is wrong all come back as an `Error`, never a panic. Unknown tags are listed and skipped.
 
+## A scene in one file
+
+pfx-scene packs a scene of TOML files, with every file it reads, into one `.manf`, and works on it in place:
+
+```sh
+cargo run --release --example scene-pack -- examples/demo/scenes/room.scene.toml room.manf
+cargo run --release --example scene-check -- room.manf
+cargo run --release --example scene-pack -- --unpack room.manf room
+```
+
+```text
+room.manf: 6 chunks, 7424 bytes
+scenes/room.scene.toml: 6 objects, 2 prefab placements, 3 bodies, 1 light, 2 materials
+no errors
+room: 5 files
+```
+
+The TOML files keep their exact text inside it, so unpacking gives them back byte for byte and packing them again gives the same `.manf`. In code:
+
+```rust
+use std::path::Path;
+
+use pfx_scene::{Project, SceneEdit, pack};
+
+fn main() {
+    let project = Project::open(Path::new("my-game")).unwrap();
+    let bytes = pack(&project, Path::new("scenes/room.scene.toml")).unwrap();
+    std::fs::write("my-game/room.manf", bytes).unwrap();
+    let scene = Project::open_manf(Path::new("my-game/room.manf"))
+        .unwrap()
+        .scene(Path::new("my-game/room.manf"))
+        .unwrap();
+    println!("{} objects", scene.objects.len());
+    let mut edit = SceneEdit::open("my-game/room.manf").unwrap();
+    edit.set_at("crate", [-0.9, 0.35, 1.5]).unwrap();
+}
+```
+
+Inside a `.manf` scene, a path finds the `.manf`'s own file of that name first and the file on disk next, and `mesh.<name>.file = "@gltf"` names the glTF in its `GLTF` and `GBIN` chunks. An edit rewrites the `.manf` once and keeps every chunk it doesn't change byte for byte. [The format](../../reference/formats/) has the rules.
+
 ## The tags
 
 `GLTF` and `GBIN` hold a document's glTF JSON and binary buffer, `SCNE` its scene TOML files (named by path), `SMET` the scene's metadata, `FILE` the files it names, `THMB` a PNG thumbnail, and `RCPE`, `FACT`, `NODE` and `OVRD` belong to Manfred. The crate's [README](https://github.com/gmrdad82/pfx-scene/blob/main/manf/README.md) is the full specification: the byte layout, the hashes and the rules for tools that rewrite a file.

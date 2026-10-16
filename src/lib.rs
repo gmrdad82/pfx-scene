@@ -5,6 +5,7 @@ mod diagnostic;
 mod edit;
 mod id;
 mod migrate;
+mod mount;
 mod paths;
 mod project;
 mod read;
@@ -17,6 +18,8 @@ pub mod types;
 pub use diagnostic::{Diagnostic, Location, Severity, code};
 pub use edit::{EditError, Kind, Patch, PatchGroup, SceneEdit, Target, Value};
 pub use id::{ID_BITS, ID_LENGTH, Id, IdError};
+pub use manf;
+pub use mount::{GLTF_PATH, pack, unpack};
 pub use project::{MAX_DEPTH, Project, check, migrate};
 pub use scene::{Entry, Scene};
 pub use types::{
