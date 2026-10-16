@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.5.0 — 2026-10-16
+
+### Added
+
+- A scene and every file it reads can be packed into one .manf file and unpacked back exactly; a .manf scene checks, resolves and edits in place, keeping the rest of the file untouched, and TOML scenes work as before.
+
 ## v1.4.0 — 2026-10-16
 
 ### Added
