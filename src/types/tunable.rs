@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use super::either::invalid;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum TunableKind {
     Float,
@@ -111,6 +112,7 @@ impl<'de> Deserialize<'de> for TunableValue {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Tunable {
     #[serde(rename = "type")]

@@ -837,12 +837,12 @@ impl<T> Out<T> {
         if let Some(path) = &self.own {
             return Some((self.entry.file.clone(), under(path, &[key.into()]), false));
         }
-        self.set
-            .iter()
-            .rev()
-            .find(|touch| touch.key == key)
-            .map(|touch| (touch.file.clone(), touch.path.clone(), true))
+        touch(&self.set, key).map(|touch| (touch.file.clone(), touch.path.clone(), true))
     }
+}
+
+fn touch<'a>(set: &'a [Touch], key: &str) -> Option<&'a Touch> {
+    set.iter().rev().find(|touch| touch.key == key)
 }
 
 #[derive(Clone, Debug, Default)]
@@ -2167,6 +2167,31 @@ impl<'p> Checker<'p> {
             let Some(raw) = &item.value.prefab else {
                 continue;
             };
+            if Id::parse(raw).is_ok()
+                && !matches!(
+                    lookup(&frame.scope.objects, raw),
+                    Lookup::One(found) if frame.scope.objects[found]
+                        .value
+                        .prefab
+                        .as_deref()
+                        .is_some_and(|target| Id::parse(target).is_err())
+                )
+            {
+                if frame.own {
+                    let message = format!(
+                        "object {} places {raw}, which is no placement of this {}; prefab names a prefab's path or a placement's id",
+                        item.name,
+                        if frame.scope.prefab {
+                            "prefab"
+                        } else {
+                            "scene"
+                        }
+                    );
+                    let (file, at) = (item.file.clone(), under(&item.path, &["prefab".into()]));
+                    self.issue(&file, &at, code::BAD_REFERENCE, message);
+                }
+                continue;
+            }
             let Some(path) = self.prefab_path(&frame.scope, raw) else {
                 continue;
             };
@@ -2258,8 +2283,22 @@ impl<'p> Checker<'p> {
                        at: &KeyPath,
                        kind: Kind,
                        reference: &str,
-                       namespaced: &dyn Fn(&str) -> Option<String>|
+                       namespaced: &dyn Fn(&str) -> Option<String>,
+                       touch: Option<&Touch>|
          -> Option<String> {
+            let overridden = |this: &mut Self, message: String| {
+                if let Some(touch) = touch.filter(|_| !own) {
+                    let finding = Finding::new(
+                        &touch.file,
+                        touch.path.clone(),
+                        Part::Key,
+                        code::BAD_OVERRIDE,
+                        message,
+                    )
+                    .related(item_file, at.clone(), Part::Value);
+                    this.push(finding);
+                }
+            };
             match scope.lookup(kind, reference) {
                 Lookup::One(index) => {
                     let names = scope.names(kind);
@@ -2287,6 +2326,15 @@ impl<'p> Checker<'p> {
                             );
                         }
                         this.push(finding);
+                    } else {
+                        overridden(
+                            this,
+                            format!(
+                                "{reference} names {} {}s of the prefab; use an id",
+                                all.len(),
+                                kind.word()
+                            ),
+                        );
                     }
                     None
                 }
@@ -2304,6 +2352,11 @@ impl<'p> Checker<'p> {
                                 kind.word(),
                                 if scope.prefab { "prefab" } else { "scene" }
                             ),
+                        );
+                    } else {
+                        overridden(
+                            this,
+                            format!("{reference} names no {} of the prefab", kind.word()),
                         );
                     }
                     None
@@ -2333,6 +2386,7 @@ impl<'p> Checker<'p> {
             .collect();
         for (at, item) in scope.objects.iter().enumerate() {
             let mut value = item.value.clone();
+            let set = touched.remove(&(Kind::Object, at)).unwrap_or_default();
             if let Some(mesh) = &value.mesh {
                 value.mesh = resolve(
                     self,
@@ -2341,6 +2395,7 @@ impl<'p> Checker<'p> {
                     Kind::Mesh,
                     mesh,
                     &|r| inner_key(&inner_meshes, r),
+                    touch(&set, "mesh"),
                 );
             }
             if let Some(parent) = &value.parent {
@@ -2351,6 +2406,7 @@ impl<'p> Checker<'p> {
                     Kind::Object,
                     parent,
                     &inner_object_key,
+                    touch(&set, "parent"),
                 );
             } else if let Some(prefix) = prefix {
                 value.parent = Some(prefix.key.clone());
@@ -2363,6 +2419,7 @@ impl<'p> Checker<'p> {
                     Kind::Content,
                     content,
                     &|r| inner_key(&inner_contents, r),
+                    touch(&set, "content"),
                 );
             }
             if let Some(prefix) = prefix {
@@ -2380,7 +2437,7 @@ impl<'p> Checker<'p> {
                 },
                 own: own.then(|| item.path.clone()),
                 at: item.path.clone(),
-                set: touched.remove(&(Kind::Object, at)).unwrap_or_default(),
+                set,
             });
             if let Some(children) = inner_objects.remove(&at) {
                 objects_out.extend(children);
@@ -2388,6 +2445,7 @@ impl<'p> Checker<'p> {
         }
         for (at, item) in scope.movers.iter().enumerate() {
             let mut value = item.value.clone();
+            let set = touched.remove(&(Kind::Mover, at)).unwrap_or_default();
             let mut objects = Vec::new();
             for (place, reference) in item.value.objects.iter().enumerate() {
                 let at = under(&item.path, &["objects".into(), place.to_string()]);
@@ -2398,6 +2456,7 @@ impl<'p> Checker<'p> {
                     Kind::Object,
                     reference,
                     &inner_object_key,
+                    touch(&set, "objects"),
                 ) {
                     objects.push(found);
                 }
@@ -2412,11 +2471,12 @@ impl<'p> Checker<'p> {
                 },
                 own: own.then(|| item.path.clone()),
                 at: item.path.clone(),
-                set: touched.remove(&(Kind::Mover, at)).unwrap_or_default(),
+                set,
             });
         }
-        for item in &scope.sounds {
+        for (at, item) in scope.sounds.iter().enumerate() {
             let mut value = item.value.clone();
+            let set = touched.remove(&(Kind::Sound, at)).unwrap_or_default();
             if let Some(object) = &item.value.object {
                 value.object = resolve(
                     self,
@@ -2425,6 +2485,7 @@ impl<'p> Checker<'p> {
                     Kind::Object,
                     object,
                     &inner_object_key,
+                    touch(&set, "object"),
                 );
             }
             placed.sounds.push(Out {
@@ -2436,11 +2497,12 @@ impl<'p> Checker<'p> {
                 },
                 own: own.then(|| item.path.clone()),
                 at: item.path.clone(),
-                set: Vec::new(),
+                set,
             });
         }
-        for item in &scope.rigs {
+        for (at, item) in scope.rigs.iter().enumerate() {
             let mut value = item.value.clone();
+            let set = touched.remove(&(Kind::Rig, at)).unwrap_or_default();
             if let Some(target) = &item.value.target {
                 value.target = resolve(
                     self,
@@ -2449,6 +2511,7 @@ impl<'p> Checker<'p> {
                     Kind::Object,
                     target,
                     &inner_object_key,
+                    touch(&set, "target"),
                 );
             }
             placed.rigs.push(Out {
@@ -2460,11 +2523,12 @@ impl<'p> Checker<'p> {
                 },
                 own: own.then(|| item.path.clone()),
                 at: item.path.clone(),
-                set: Vec::new(),
+                set,
             });
         }
         for (at, item) in scope.lights.iter().enumerate() {
             let mut value = item.value.clone();
+            let set = touched.remove(&(Kind::Light, at)).unwrap_or_default();
             if let Some(parent) = &item.value.parent {
                 value.parent = resolve(
                     self,
@@ -2473,6 +2537,7 @@ impl<'p> Checker<'p> {
                     Kind::Object,
                     parent,
                     &inner_object_key,
+                    touch(&set, "parent"),
                 );
             }
             placed.lights.push(Out {
@@ -2484,11 +2549,12 @@ impl<'p> Checker<'p> {
                 },
                 own: own.then(|| item.path.clone()),
                 at: item.path.clone(),
-                set: touched.remove(&(Kind::Light, at)).unwrap_or_default(),
+                set,
             });
         }
         for (at, item) in scope.particles.iter().enumerate() {
             let mut value = item.value.clone();
+            let set = touched.remove(&(Kind::Particles, at)).unwrap_or_default();
             if let Some(parent) = &item.value.parent {
                 value.parent = resolve(
                     self,
@@ -2497,6 +2563,7 @@ impl<'p> Checker<'p> {
                     Kind::Object,
                     parent,
                     &inner_object_key,
+                    touch(&set, "parent"),
                 );
             } else if let Some(prefix) = prefix {
                 value.parent = Some(prefix.key.clone());
@@ -2510,7 +2577,7 @@ impl<'p> Checker<'p> {
                 },
                 own: own.then(|| item.path.clone()),
                 at: item.path.clone(),
-                set: touched.remove(&(Kind::Particles, at)).unwrap_or_default(),
+                set,
             });
         }
         macro_rules! plain {
@@ -2550,6 +2617,17 @@ impl<'p> Checker<'p> {
     fn context(&mut self, file: &Path, kind: FileKind) -> Option<Scene> {
         if kind == FileKind::Prefab {
             self.prefabs_checked.insert(file.to_path_buf());
+        }
+        if self.text(file).is_none() {
+            let message = format!("the {} {} is not found", kind.name(), slashed(file));
+            self.push(Finding::new(
+                file,
+                Vec::new(),
+                Part::Value,
+                code::MISSING_FILE,
+                message,
+            ));
+            return None;
         }
         let scene = self.context_in(file, kind, Vec::new());
         while let Some((prefab, chain)) = self.unchecked.pop() {
@@ -2889,7 +2967,9 @@ impl<'p> Checker<'p> {
             .map(|(at, out)| (out.entry.key.as_str(), at))
             .collect();
         for (start, out) in objects.iter().enumerate() {
-            let Some(path) = &out.own else { continue };
+            let Some(blame) = out.blame("parent") else {
+                continue;
+            };
             let mut at = start;
             let mut steps = 0;
             while let Some(parent) = objects[at]
@@ -2901,9 +2981,8 @@ impl<'p> Checker<'p> {
             {
                 steps += 1;
                 if *parent == start || steps > objects.len() {
-                    self.issue(
-                        &out.entry.file,
-                        &under(path, &["parent".into()]),
+                    self.blamed(
+                        blame,
                         code::PARENT_CYCLE,
                         format!("object {}: its parents form a cycle", out.entry.key),
                     );
@@ -2916,11 +2995,10 @@ impl<'p> Checker<'p> {
         for mover in &placed.movers {
             for object in &mover.entry.value.objects {
                 if let Some(other) = owner.insert(object, &mover.entry.key)
-                    && let Some(path) = &mover.own
+                    && let Some(blame) = mover.blame("objects")
                 {
-                    self.issue(
-                        &mover.entry.file,
-                        &under(path, &["objects".into()]),
+                    self.blamed(
+                        blame,
                         code::BAD_VALUE,
                         format!(
                             "object {object} is moved by movers {other} and {}; one at most",
@@ -2973,14 +3051,13 @@ impl<'p> Checker<'p> {
         self.bodies(placed, &index, &owner);
         let mut looping: Option<&str> = None;
         for sound in &placed.sounds {
-            let Some(path) = &sound.own else { continue };
             if let Some(object) = &sound.entry.value.object
                 && let Some(at) = index.get(object.as_str())
                 && objects[*at].entry.value.body.is_none()
+                && let Some(blame) = sound.blame("object")
             {
-                self.issue(
-                    &sound.entry.file,
-                    &under(path, &["object".into()]),
+                self.blamed(
+                    blame,
                     code::BAD_REFERENCE,
                     format!(
                         "sound {} names object {object}, which has no body",
@@ -2990,9 +3067,11 @@ impl<'p> Checker<'p> {
             }
             if sound.entry.value.looping {
                 if let Some(other) = looping {
-                    self.issue(
-                        &sound.entry.file,
-                        &under(path, &["loop".into()]),
+                    let Some(blame) = sound.blame("loop") else {
+                        continue;
+                    };
+                    self.blamed(
+                        blame,
                         code::BAD_VALUE,
                         format!(
                             "sounds {other} and {} both loop; one looping sound at most",
@@ -3003,6 +3082,25 @@ impl<'p> Checker<'p> {
                     looping = Some(&sound.entry.key);
                 }
             }
+        }
+    }
+
+    fn blamed(
+        &mut self,
+        (file, path, overridden): (PathBuf, KeyPath, bool),
+        code: &'static str,
+        message: String,
+    ) {
+        if overridden {
+            self.push(Finding::new(
+                &file,
+                path,
+                Part::Key,
+                code::BAD_OVERRIDE,
+                message,
+            ));
+        } else {
+            self.issue(&file, &path, code, message);
         }
     }
 

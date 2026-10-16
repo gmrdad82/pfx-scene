@@ -149,9 +149,10 @@ std::fs::write("my-game/scenes/old.scene.toml", migrated).unwrap();
 - `Project::scene_with` and `check_with` resolve and check with unsaved texts in place of the files.
 - `Project::fix` fills the ids a scene's files lack.
 - `Project::migrate` rewrites an older file as the current format.
+- `json_schema` (the `schema` feature) gives the JSON Schema of a kind of file, for TOML editors; the schemas of each version are in [docs/schema/](docs/schema/).
 - `pack` puts a scene and every file it reads into one `.manf` file, the same bytes every time; `unpack` writes them back out. `Project::open_manf` opens one, and checks, resolving and `SceneEdit` work on the TOML inside it in place.
 
-The examples in [examples/](examples/) are small programs on this API: `scene-check` checks a project or a `.manf` scene, `scene-tree` prints a resolved scene, `scene-write` moves, renames, sets a material or migrates a file, `scene-pack` packs a scene into a `.manf` and unpacks one, and `scene-bench` measures the table above. What changed in each version is in [CHANGELOG.md](CHANGELOG.md).
+The examples in [examples/](examples/) are small programs on this API: `scene-check` checks a project or a `.manf` scene, `scene-tree` prints a resolved scene, `scene-write` moves, renames, sets a material or migrates a file, `scene-pack` packs a scene into a `.manf` and unpacks one, `scene-schema` writes the JSON Schemas, and `scene-bench` measures the table above. What changed in each version is in [CHANGELOG.md](CHANGELOG.md).
 
 ## The .manf container
 

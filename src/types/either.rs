@@ -102,6 +102,24 @@ macro_rules! either {
                 deserializer.deserialize_any(Pick)
             }
         }
+
+        #[cfg(feature = "schema")]
+        impl schemars::JsonSchema for $name {
+            fn schema_name() -> std::borrow::Cow<'static, str> {
+                stringify!($name).into()
+            }
+
+            #[allow(unused_variables)]
+            fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
+                let mut any: Vec<schemars::Schema> = Vec::new();
+                $( let _ = stringify!($bool_variant); any.push(schemars::json_schema!({ "type": "boolean" })); )?
+                $( let _ = stringify!($number_variant); any.push(schemars::json_schema!({ "type": "number" })); )?
+                $( let _ = stringify!($text_variant); any.push(generator.subschema_for::<$text_type>()); )?
+                $( let _ = stringify!($seq_variant); any.push(generator.subschema_for::<$seq_type>()); )?
+                $( let _ = stringify!($map_variant); any.push(generator.subschema_for::<$map_type>()); )?
+                schemars::json_schema!({ "anyOf": any })
+            }
+        }
     };
 }
 

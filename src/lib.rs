@@ -11,6 +11,8 @@ mod project;
 mod read;
 mod rules;
 mod scene;
+#[cfg(feature = "schema")]
+mod schema;
 mod sha256;
 mod spans;
 pub mod types;
@@ -22,6 +24,8 @@ pub use manf;
 pub use mount::{GLTF_PATH, pack, unpack};
 pub use project::{MAX_DEPTH, Project, check, migrate};
 pub use scene::{Entry, Scene};
+#[cfg(feature = "schema")]
+pub use schema::json_schema;
 pub use types::{
     FORMAT, File, FileKind, MaterialsFile, PrefabFile, ProjectFile, ProjectTable, ProxiesFile,
     SceneFile,

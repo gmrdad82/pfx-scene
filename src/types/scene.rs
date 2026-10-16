@@ -8,6 +8,7 @@ use super::{is_false, is_zero3};
 use crate::Id;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Mesh {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -18,10 +19,12 @@ pub struct Mesh {
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub nodes: BTreeMap<String, Node>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "schema", schemars(with = "Option<serde_json::Value>"))]
     pub authoring: Option<toml::Value>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Node {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -35,6 +38,7 @@ pub struct Node {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum Shadow {
     #[default]
@@ -62,6 +66,7 @@ impl Scale {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Object {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -110,8 +115,13 @@ pub struct Object {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub animation: Option<Animation>,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    #[cfg_attr(
+        feature = "schema",
+        schemars(with = "BTreeMap<String, serde_json::Value>")
+    )]
     pub set: BTreeMap<String, toml::Value>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "schema", schemars(with = "Option<serde_json::Value>"))]
     pub authoring: Option<toml::Value>,
 }
 
@@ -128,6 +138,7 @@ impl Object {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum LightKind {
     #[default]
@@ -136,6 +147,7 @@ pub enum LightKind {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Light {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -167,6 +179,7 @@ pub struct Light {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub keys: Option<Keys>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "schema", schemars(with = "Option<serde_json::Value>"))]
     pub authoring: Option<toml::Value>,
 }
 
@@ -191,6 +204,7 @@ impl Light {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum ParticleBlend {
     #[default]
@@ -199,6 +213,7 @@ pub enum ParticleBlend {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Particles {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -253,6 +268,7 @@ pub struct Particles {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub keys: Option<Keys>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "schema", schemars(with = "Option<serde_json::Value>"))]
     pub authoring: Option<toml::Value>,
 }
 
@@ -275,6 +291,7 @@ impl Particles {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Flare {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -294,6 +311,7 @@ pub struct Flare {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct MotionBlur {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -305,6 +323,7 @@ pub struct MotionBlur {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Emitter {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -316,10 +335,12 @@ pub struct Emitter {
     pub color: Option<[f32; 3]>,
     pub intensity: f32,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "schema", schemars(with = "Option<serde_json::Value>"))]
     pub authoring: Option<toml::Value>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum MoverKind {
     Turn,
@@ -327,6 +348,7 @@ pub enum MoverKind {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum Motion {
     #[default]
@@ -336,6 +358,7 @@ pub enum Motion {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Mover {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -356,6 +379,7 @@ pub struct Mover {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub clip: Vec<[f32; 4]>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "schema", schemars(with = "Option<serde_json::Value>"))]
     pub authoring: Option<toml::Value>,
 }
 
@@ -364,16 +388,19 @@ impl Mover {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Content {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub id: Option<Id>,
     pub image: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "schema", schemars(with = "Option<serde_json::Value>"))]
     pub authoring: Option<toml::Value>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Text {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -392,6 +419,7 @@ pub struct Text {
     #[serde(default, skip_serializing_if = "is_false")]
     pub dynamic: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "schema", schemars(with = "Option<serde_json::Value>"))]
     pub authoring: Option<toml::Value>,
 }
 
@@ -400,6 +428,7 @@ impl Text {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum Cue {
     #[default]
@@ -409,6 +438,7 @@ pub enum Cue {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Sound {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -425,10 +455,12 @@ pub struct Sound {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub object: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "schema", schemars(with = "Option<serde_json::Value>"))]
     pub authoring: Option<toml::Value>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum SunModel {
     Daylight,
@@ -436,6 +468,7 @@ pub enum SunModel {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Sun {
     pub model: SunModel,
@@ -475,6 +508,7 @@ impl Sun {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Haze {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -533,6 +567,7 @@ impl Haze {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum Projection {
     #[default]
@@ -541,6 +576,7 @@ pub enum Projection {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Camera {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -602,6 +638,7 @@ impl Camera {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Preset {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -623,6 +660,7 @@ pub struct Preset {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Orbit {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -636,6 +674,7 @@ pub struct Orbit {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Look {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -651,6 +690,7 @@ pub struct Look {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Zoom {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -664,6 +704,7 @@ pub struct Zoom {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Wander {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -675,6 +716,7 @@ pub struct Wander {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Nudge {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -688,6 +730,7 @@ pub struct Nudge {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Hush {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -699,6 +742,7 @@ pub struct Hush {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Depth {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -710,6 +754,7 @@ pub struct Depth {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Trace {
     #[serde(default, skip_serializing_if = "is_false")]
@@ -726,6 +771,7 @@ impl Trace {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum Casters {
     #[default]
@@ -735,6 +781,7 @@ pub enum Casters {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Plates {
     pub dir: String,
@@ -745,6 +792,7 @@ pub struct Plates {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Physics {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -765,6 +813,7 @@ impl Physics {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum BodyKind {
     #[default]
@@ -774,6 +823,7 @@ pub enum BodyKind {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum BodyShape {
     #[default]
@@ -784,6 +834,7 @@ pub enum BodyShape {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Body {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -826,6 +877,7 @@ impl Body {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum CharacterKind {
     #[default]
     #[serde(rename = "3d")]
@@ -835,6 +887,7 @@ pub enum CharacterKind {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum Plane {
     #[default]
@@ -843,6 +896,7 @@ pub enum Plane {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Character {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -887,6 +941,7 @@ impl Character {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Trigger {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -906,6 +961,7 @@ pub struct Trigger {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "kebab-case")]
 pub enum RigKind {
     Follow,
@@ -924,6 +980,7 @@ impl RigKind {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Bounds {
     pub min: [f32; 3],
@@ -931,6 +988,7 @@ pub struct Bounds {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Rig {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -968,6 +1026,7 @@ pub struct Rig {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub collide: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "schema", schemars(with = "Option<serde_json::Value>"))]
     pub authoring: Option<toml::Value>,
 }
 
@@ -985,6 +1044,7 @@ impl Rig {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "kebab-case")]
 pub enum Repeat {
     #[default]
@@ -994,6 +1054,7 @@ pub enum Repeat {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct BlendClip {
     pub clip: String,
@@ -1006,6 +1067,7 @@ impl BlendClip {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct SpriteClip {
     pub from: u32,
@@ -1023,6 +1085,7 @@ impl SpriteClip {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct ClipEvent {
     pub name: String,
@@ -1035,6 +1098,7 @@ pub struct ClipEvent {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Animation {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1081,6 +1145,7 @@ impl Animation {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum TilePlane {
     #[default]
@@ -1118,6 +1183,7 @@ impl CellSize {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct TileCell {
     pub at: [i32; 2],
@@ -1125,6 +1191,7 @@ pub struct TileCell {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Tiles {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1143,6 +1210,7 @@ pub struct Tiles {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cells: Option<Vec<TileCell>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "schema", schemars(with = "Option<serde_json::Value>"))]
     pub authoring: Option<toml::Value>,
 }
 
@@ -1185,6 +1253,7 @@ impl Tiles {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum ProxyKind {
     Box,
@@ -1192,6 +1261,7 @@ pub enum ProxyKind {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Proxy {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1209,6 +1279,7 @@ pub struct Proxy {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub triangles: Option<Vec<[u32; 3]>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "schema", schemars(with = "Option<serde_json::Value>"))]
     pub authoring: Option<toml::Value>,
 }
 

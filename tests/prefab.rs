@@ -415,3 +415,45 @@ fn a_body_under_an_ordinary_object_is_refused_where_it_is_placed() {
         found[0]
     );
 }
+
+#[test]
+fn a_prefab_id_naming_no_placement_is_a_bad_reference() {
+    let folder = placed(
+        "prefab-dangling-id",
+        "\n[[object]]\nid = \"g0ne1amp00\"\nname = \"gone lamp\"\nprefab = \"zzzzzzzzzz\"\n",
+    );
+    let diagnostics = folder.check();
+    let errors = errors(&diagnostics);
+    assert_eq!(errors.len(), 1, "{}", show(&diagnostics));
+    assert_eq!(errors[0].code, code::BAD_REFERENCE);
+    assert_eq!(errors[0].file, Path::new("room.scene.toml"));
+    assert_eq!(
+        errors[0].line,
+        line_of(&folder, "room.scene.toml", "prefab = \"zzzzzzzzzz\"")
+    );
+    assert!(errors[0].message.contains("zzzzzzzzzz"), "{}", errors[0]);
+}
+
+#[test]
+fn a_relation_an_override_breaks_is_reported_at_the_override() {
+    for (name, set, needle) in [
+        (
+            "override-dangling",
+            "\"bulb.parent\" = \"nobody\"\n",
+            "nobody names no object of the prefab",
+        ),
+        (
+            "override-cycle",
+            "\"shade.parent\" = \"stem\"\n",
+            "parents form a cycle",
+        ),
+    ] {
+        let diagnostics = refused(name, set);
+        let errors = errors(&diagnostics);
+        assert_eq!(errors.len(), 1, "{name}: {}", show(&diagnostics));
+        assert_eq!(errors[0].code, code::BAD_OVERRIDE, "{name}");
+        assert_eq!(errors[0].file, Path::new("room.scene.toml"), "{name}");
+        assert_eq!(errors[0].line, 113, "{name}: {}", errors[0]);
+        assert!(errors[0].message.contains(needle), "{name}: {}", errors[0]);
+    }
+}

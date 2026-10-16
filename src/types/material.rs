@@ -6,6 +6,7 @@ pub const LAYER_CAP: usize = 4;
 pub const PARAMS: usize = 12;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum Family {
     #[default]
@@ -29,6 +30,7 @@ pub enum Family {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum Content {
     #[default]
@@ -43,6 +45,7 @@ pub enum Content {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum NormalSource {
     #[default]
@@ -52,6 +55,7 @@ pub enum NormalSource {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum NoiseKind {
     #[default]
@@ -71,6 +75,7 @@ pub enum NoiseKind {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum Blend {
     #[default]
@@ -84,6 +89,7 @@ fn unset(params: &[f32; PARAMS]) -> bool {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct NoiseLayer {
     pub kind: NoiseKind,
@@ -107,6 +113,7 @@ impl Default for NoiseLayer {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Normal {
     pub source: NormalSource,
@@ -123,6 +130,7 @@ impl Default for Normal {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Maps {
     pub layer: f32,
@@ -143,6 +151,7 @@ impl Default for Maps {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Ageing {
     pub fade: f32,
@@ -156,6 +165,7 @@ pub struct Ageing {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Wet {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -169,6 +179,7 @@ pub struct Wet {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Fabric {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -178,6 +189,7 @@ pub struct Fabric {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Anisotropy {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -187,6 +199,7 @@ pub struct Anisotropy {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Scatter {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -198,6 +211,7 @@ pub struct Scatter {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(default, deny_unknown_fields)]
 pub struct ContentLayer {
     pub slot: i32,
@@ -220,6 +234,7 @@ impl Default for ContentLayer {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(default, deny_unknown_fields)]
 pub struct Material {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -260,6 +275,7 @@ pub struct Material {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub scatter: Option<Scatter>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "schema", schemars(with = "Option<serde_json::Value>"))]
     pub authoring: Option<toml::Value>,
 }
 

@@ -46,6 +46,7 @@ pub(crate) fn is_zero3(value: &[f32; 3]) -> bool {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct ProjectFile {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -56,10 +57,15 @@ pub struct ProjectFile {
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub layers: BTreeMap<String, Vec<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(
+        feature = "schema",
+        schemars(with = "Option<serde_json::Map<String, serde_json::Value>>")
+    )]
     pub authoring: Option<toml::Table>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct ProjectTable {
     pub name: String,
@@ -70,6 +76,7 @@ pub struct ProjectTable {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct SceneFile {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -123,10 +130,15 @@ pub struct SceneFile {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub physics: Option<Physics>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(
+        feature = "schema",
+        schemars(with = "Option<serde_json::Map<String, serde_json::Value>>")
+    )]
     pub authoring: Option<toml::Table>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct PrefabFile {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -156,10 +168,15 @@ pub struct PrefabFile {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub particles: Vec<Particles>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(
+        feature = "schema",
+        schemars(with = "Option<serde_json::Map<String, serde_json::Value>>")
+    )]
     pub authoring: Option<toml::Table>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct MaterialsFile {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -167,10 +184,15 @@ pub struct MaterialsFile {
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub materials: BTreeMap<String, Material>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(
+        feature = "schema",
+        schemars(with = "Option<serde_json::Map<String, serde_json::Value>>")
+    )]
     pub authoring: Option<toml::Table>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct ProxiesFile {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -178,6 +200,10 @@ pub struct ProxiesFile {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub proxy: Vec<Proxy>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(
+        feature = "schema",
+        schemars(with = "Option<serde_json::Map<String, serde_json::Value>>")
+    )]
     pub authoring: Option<toml::Table>,
 }
 

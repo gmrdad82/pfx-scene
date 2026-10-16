@@ -82,7 +82,7 @@ parent = "desk"
 - A placement is a group with no mesh. Its transform is the parent of every root object in the prefab: the prefab's root objects take the placement as their parent. Its `hidden` applies to every object it places. Its `dynamic`, like any object's, reaches the objects under it that don't set their own.
 - A placement carries no body, character, trigger or animation of its own. A body or a character in a prefab is placed with it and starts at its world transform, the placements' transforms times its own (`[object.body]` and `[object.character]`, under `[[object]]`).
 - `[object.set]` overrides any key of any entry in the prefab: its keys are `"<entry>.<key path>"`, and its values replace the prefab's. `<entry>` is the inner entry's id, or its name when that name is unique in the prefab and holds no `.`; an inner entry of a nested placement is written `"<placement id>/<inner id>"`. The key path is the entry's keys joined by `.`, where a number picks an entry of a list, counting from 0 (`"lamp.layers.1.frequency"`), as the writer's key paths do. An override may set a key the entry takes but does not hold yet. An override that names no entry, names a key that entry doesn't take, or gives a value of the wrong type is refused (`bad-override`).
-- Override values are read as the prefab's own: a reference in an override resolves inside the prefab.
+- Override values are read as the prefab's own: a reference in an override resolves inside the prefab. A relation an override breaks is refused at the override's key (`bad-override`), with the entry it changed in `related` where that helps: a reference that names no entry of the prefab or names two, a parent cycle, an object two movers move, a hit sound's object without a body, or a second looping sound.
 - An override only replaces values. Adding entries to a placed prefab is what a nested placement or the prefab's own include is for; format 1 has no other way.
 - A prefab is self-contained: its references resolve inside the prefab and its includes, and its materials among its own libraries.
 - Inside a placement, inner ids are namespaced `"<placement id>/<inner id>"`, so the same prefab placed twice gives distinct, stable ids. A reference from outside reaches an inner entry by that namespaced id.
@@ -270,7 +270,7 @@ The loader computes missing normals (smooth, area weighted); missing tangents ar
 | `id` | id | none | |
 | `name` | string | needed | unique among the objects of a scene and its includes. |
 | `mesh` | reference | needed without `prefab` | a mesh. A placement takes none. |
-| `prefab` | path or id | none | places a prefab (Prefabs): a `*.prefab.toml` path, or a placement's id. |
+| `prefab` | path or id | none | places a prefab (Prefabs): a `*.prefab.toml` path, or the id of a placement of the same file that names a path (that placement's prefab); an id that names no such placement is `bad-reference`. |
 | `set` | table | none | `[object.set]`: a placement's overrides, `"<entry>.<key path>" = value`. |
 | `at` | `[x, y, z]` | `[0, 0, 0]` | |
 | `rotate` | `[x, y, z]` | `[0, 0, 0]` | degrees about X, then Y, then Z. |
@@ -1237,11 +1237,11 @@ pub struct Location {
 | `duplicate-id` | an id is used twice in the project. |
 | `bad-name` | a name is empty, has a space at an end, or (a material's) holds a control character; a palette key is `.`, or holds a space. |
 | `duplicate-name` | a name is used twice in its kind across a scene and its includes, or a material is in two libraries. |
-| `bad-reference` | a reference matches no entry of its kind, or an entry that can't serve (a hit sound's object without a body, a proxy's dynamic object or placement, a palette id that is no placement), or a layer name names no layer of `[layers]`, a sprite's clip no clip of its `clips`, or a tile no key of its layer's palette. |
+| `bad-reference` | a reference matches no entry of its kind, or an entry that can't serve (a hit sound's object without a body, a proxy's dynamic object or placement, a palette or `prefab` id that is no placement), or a layer name names no layer of `[layers]`, a sprite's clip no clip of its `clips`, or a tile no key of its layer's palette. |
 | `ambiguous-reference` | a reference names a name two entries carry. |
 | `bad-path` | a path is empty, absolute, or holds a backslash. |
 | `outside-root` | a path leaves the project root. |
-| `missing-file` | a named file does not exist (a `[plates] dir` and the paths of `[project] ignore` may not exist yet). |
+| `missing-file` | a named file does not exist (a `[plates] dir` and the paths of `[project] ignore` may not exist yet), or the scene or prefab asked for is not found (at line 1, column 1 of that file). |
 | `path-case` | a named file exists only with another case. |
 | `include-cycle` | a scene or prefab includes itself; `related` lists each include of the cycle. |
 | `prefab-cycle` | a prefab places itself; `related` lists each placement of the cycle. |
@@ -1249,13 +1249,15 @@ pub struct Location {
 | `prefab-depth` | prefab placements nest more than 64 deep; `related` lists each placement of the chain. |
 | `parent-cycle` | objects' parents form a cycle. |
 | `held-twice` | `fallback` or a one-file table is held by two files of a scene. |
-| `bad-override` | an `[object.set]` key names no entry or a key that entry doesn't take, or its value doesn't fit (a layer name the project doesn't name among them), or it puts a body or a character under an ordinary object or a moved placement. |
+| `bad-override` | an `[object.set]` key names no entry or a key that entry doesn't take, or its value doesn't fit (a layer name the project doesn't name among them), or it puts a body or a character under an ordinary object or a moved placement, or it breaks a relation (Prefabs). |
 | `placement-key` | a placement holds a key only an object with a mesh takes (`body`, `character`, `trigger` and `animation` among them). |
 | `old-format` | a format 0 file, read through the migration (a warning). |
 | `newer-format` | a file's `format` is newer than the reader knows. |
 | `migration` | a migration step can't run, such as a `[body.<object>]` whose object is in another file. |
 
-A JSON Schema for TOML editors follows format 1.
+## JSON Schema
+
+`docs/schema/` holds a JSON Schema (draft 2020-12) for each kind of file: `project.schema.json`, `scene.schema.json`, `prefab.schema.json`, `materials.schema.json`, `proxies.schema.json` and `finish.schema.json`. They are generated from the crate's types, so they carry every table and key with its type, each enumerated value and an id's form, and refuse unknown keys as the reader does; ranges, references and paths stay the checker's. Each tag of the crate carries the schemas of its version. With the crate's `schema` feature, `json_schema(kind)` gives one as text, and `cargo run --features schema --example scene-schema -- <folder>` writes all six.
 
 ## Scenes in a .manf file
 
@@ -1275,4 +1277,4 @@ A `.manf` scene lays its files over the project: inside it, a path resolves to t
 
 ## The crate
 
-`pfx-scene` is MIT licensed. It depends on `toml`, `toml_edit` and `serde`, and on `manf` from this repository for `.manf` scenes. Vectors are plain arrays (`[f32; 3]`), never a maths crate's types. Its semver is its own; the `format` number changes only with a migration.
+`pfx-scene` is MIT licensed. It depends on `toml`, `toml_edit` and `serde`, and on `manf` from this repository for `.manf` scenes. The optional `schema` feature adds `schemars` and `serde_json` for `json_schema`. Vectors are plain arrays (`[f32; 3]`), never a maths crate's types. Its semver is its own; the `format` number changes only with a migration.

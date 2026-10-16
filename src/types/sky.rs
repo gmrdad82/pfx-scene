@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use super::keys::{Key, KeyShape, Keys};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum SkyKind {
     Analytic,
@@ -12,6 +13,7 @@ pub enum SkyKind {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Sky {
     pub kind: SkyKind,
@@ -70,6 +72,7 @@ impl Sky {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Prepare {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -81,6 +84,7 @@ pub struct Prepare {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Room {
     #[serde(default = "Room::width")]
@@ -120,6 +124,7 @@ impl Default for Room {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct RoomLamp {
     #[serde(default, skip_serializing_if = "String::is_empty")]

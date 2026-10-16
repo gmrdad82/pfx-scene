@@ -137,6 +137,7 @@ impl<'de> Deserialize<'de> for KeyValue {
 pub type Key = (f32, KeyValue);
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(transparent)]
 pub struct Keys(pub BTreeMap<String, Vec<Key>>);
 

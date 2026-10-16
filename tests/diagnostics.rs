@@ -874,3 +874,24 @@ fn the_engines_refusals_are_kept() {
         );
     }
 }
+
+#[test]
+fn a_scene_file_that_is_not_found_is_named_in_a_diagnostic() {
+    let folder = Folder::room("scene-not-found");
+    let project = folder.project();
+    let missing = folder.path("gone.scene.toml");
+    let named = |diagnostic: &Diagnostic| {
+        diagnostic.code == code::MISSING_FILE
+            && diagnostic.file == Path::new("gone.scene.toml")
+            && (diagnostic.line, diagnostic.column) == (1, 1)
+            && diagnostic.message.contains("gone.scene.toml")
+    };
+    let scene = project.scene(&missing).unwrap_err();
+    assert!(scene.iter().any(named), "{}", show(&scene));
+    let fix = project.fix(&missing).unwrap_err();
+    assert_eq!(fix.code, code::MISSING_FILE, "{fix}");
+    assert!(fix.diagnostics.iter().any(named), "{fix}");
+    let edit = pfx_scene::SceneEdit::open(&missing).err().unwrap();
+    assert_eq!(edit.code, code::MISSING_FILE, "{edit}");
+    assert!(edit.message.contains("gone.scene.toml"), "{edit}");
+}

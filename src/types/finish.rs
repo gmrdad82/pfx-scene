@@ -28,6 +28,7 @@ pub const STYLES: &[&str] = &[
 ];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum Style {
     Cel,
@@ -54,6 +55,7 @@ pub enum Style {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum WarmthKind {
     Linear,
@@ -61,6 +63,7 @@ pub enum WarmthKind {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct WarmthTable {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -87,6 +90,7 @@ pub enum Warmth {
 either!(Warmth, "a number or a table", number => Amount, map => Table(WarmthTable),);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum ToneKind {
     Aces,
@@ -95,6 +99,7 @@ pub enum ToneKind {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct ToneTable {
     pub kind: ToneKind,
@@ -114,6 +119,7 @@ pub enum Tone {
 either!(Tone, "aces, agx, neutral or a table", text => Kind(ToneKind), map => Table(ToneTable),);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum BloomKind {
     Box,
@@ -122,6 +128,7 @@ pub enum BloomKind {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct BloomTable {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -164,6 +171,7 @@ pub enum Bloom {
 either!(Bloom, "a number or a table", number => Strength, map => Table(BloomTable),);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum VignetteKind {
     Power,
@@ -171,6 +179,7 @@ pub enum VignetteKind {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct VignetteTable {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -199,6 +208,7 @@ pub enum Vignette {
 either!(Vignette, "a number or a table", number => Strength, map => Table(VignetteTable),);
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct GrainTable {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -228,6 +238,7 @@ pub enum Dither {
 either!(Dither, "a bool or a number", bool => On, number => Amplitude,);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum DitherKind {
     Blue,
@@ -235,6 +246,7 @@ pub enum DitherKind {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Lut {
     pub size: u32,
@@ -259,6 +271,7 @@ pub enum LutKey {
 either!(LutKey, "a path to a .cube file or a table", text => Path(String), map => Table(Lut),);
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct OutlineTable {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -285,6 +298,7 @@ pub enum Outline {
 either!(Outline, "a bool or a table", bool => On, map => Table(OutlineTable),);
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct ScratchesTable {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -312,6 +326,7 @@ pub enum Ink {
 either!(Ink, "a number, \"#rrggbb\" or three numbers", number => Amount, text => Color(Color), seq => Color(Color),);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum TapeDirection {
     Forward,
@@ -319,6 +334,7 @@ pub enum TapeDirection {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct TapeTable {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -352,6 +368,7 @@ either!(Tape, "forward, rewind, a number or a table", number => Strength, text =
 macro_rules! finish {
     ($($field:ident: $kind:ty,)*) => {
         #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+        #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
         #[serde(deny_unknown_fields)]
         pub struct FinishKeys {
             $(
@@ -361,6 +378,7 @@ macro_rules! finish {
         }
 
         #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+        #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
         #[serde(deny_unknown_fields)]
         pub struct Finish {
             #[serde(default, skip_serializing_if = "Option::is_none")]

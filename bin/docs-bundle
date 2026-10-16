@@ -16,6 +16,7 @@ mkdir -p "$out/docs/reference" "$out/docs/images"
 cp -R docs/site/. "$out/docs/"
 find docs/images -type f ! -name SOURCE -exec cp {} "$out/docs/images/" \;
 sed -E "s/tag = \"v[0-9]+\.[0-9]+\.[0-9]+\"/tag = \"$version\"/" docs/site/install.md >"$out/docs/install.md"
+sed -E -e "s/tag = \"v[0-9]+\.[0-9]+\.[0-9]+\"/tag = \"$version\"/" -e "s#/v[0-9]+\.[0-9]+\.[0-9]+/docs/schema/#/$version/docs/schema/#g" docs/site/guides/schema.md >"$out/docs/guides/schema.md"
 
 {
   printf -- '---\ntitle: The format\ndescription: The specification of format 1, every key with its type, default and range, the diagnostic codes and the API that reads and writes it.\nsidebar:\n  order: 30\n---\n\n'
@@ -28,7 +29,7 @@ sed -E "s/tag = \"v[0-9]+\.[0-9]+\.[0-9]+\"/tag = \"$version\"/" docs/site/insta
 } >"$out/docs/changelog.md"
 
 rm -rf target/doc
-cargo doc --workspace --no-deps --locked --lib
+cargo doc --workspace --no-deps --locked --lib --all-features
 cp -R target/doc "$out/docs/api"
 blob="https://github.com/gmrdad82/pfx-scene/blob/$version"
 sed -i.bak -E \
@@ -37,6 +38,7 @@ sed -i.bak -E \
   -e 's#href="CHANGELOG.md"#href="../../changelog/"#g' \
   -e "s#href=\"(LICENSE|NOTICE.md|TRADEMARKS.md|CODE_OF_CONDUCT.md|SECURITY.md)\"#href=\"$blob/\\1\"#g" \
   -e "s#href=\"examples/\"#href=\"https://github.com/gmrdad82/pfx-scene/tree/$version/examples\"#g" \
+  -e "s#href=\"docs/schema/\"#href=\"https://github.com/gmrdad82/pfx-scene/tree/$version/docs/schema\"#g" \
   "$out/docs/api/pfx_scene/index.html"
 rm "$out/docs/api/pfx_scene/index.html.bak"
 
