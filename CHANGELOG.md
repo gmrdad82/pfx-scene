@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.3.0 — 2026-10-16
+
+### Changed
+
+- Credit pcod from pito-codecs for the README's GIFs.
+- Key light, camera, particle, finish, haze, sun and sky values over time.
+
 ## v1.2.0 — 2026-10-16
 
 ### Added
