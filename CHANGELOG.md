@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.2.0 — 2026-10-16
+
+### Added
+
+- Add fabric, anisotropy and scatter material keys.
+
 ## v1.1.0 — 2026-10-16
 
 ### Added
