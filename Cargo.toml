@@ -1,6 +1,6 @@
 [package]
 name = "pfx-scene"
-version = "1.3.0"
+version = "1.4.0"
 authors = ["Gamer Dad"]
 edition = "2024"
 description = "One TOML format for 3D scenes, materials and prefabs: typed tables, errors at file:line:column, stable ids, versioned files with migrations, and a writer that keeps the author's comments, spacing and order"

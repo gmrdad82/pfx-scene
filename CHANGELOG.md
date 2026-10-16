@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.4.0 — 2026-10-16
+
+### Added
+
+- Add manf, the .manf container crate, as a second workspace crate.
+
+### Changed
+
+- manf: a chunk read from a slice borrows the slice, so it can outlive the Reader.
+
 ## v1.3.0 — 2026-10-16
 
 ### Changed
